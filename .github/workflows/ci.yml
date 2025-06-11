@@ -1,4 +1,4 @@
-name: Lint and Format Check
+name: CI - Lint and Test
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
       - develop
 
 jobs:
-  lint:
+  lint_and_test:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,15 +23,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # or your project's Python version
+          python-version: '3.13' 
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 black
+          pip install .
+          pip install flake8 black pytest
 
       - name: Run flake8 linter
-        run: flake8 modules utils main.py  # adjust paths/files as needed
+        run: flake8 modules utils ara_loop.py 
 
       - name: Check formatting with black
         run: black --check .
+
+      - name: Run tests with pytest
+        run: pytest tests/ 
