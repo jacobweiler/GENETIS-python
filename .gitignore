@@ -1,0 +1,13 @@
+# Python
+__pycache__/ 
+
+#Environment 
+.conda/ 
+
+# Packaging
+GENETIS_ARA.egg-info/
+
+# Loop Specific
+rundata/ 
+savestates/
+*.pkl 

@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["modules", "utils"]
+
+[project]
+name = "GENETIS-ARA"
+version = "0.1"
+description="GENETIS Genetic Algorithm to evolve antennas in ARA deployment"
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib"
+]
