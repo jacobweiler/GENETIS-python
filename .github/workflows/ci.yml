@@ -32,7 +32,7 @@ jobs:
           pip install flake8 black pytest
 
       - name: Run flake8 linter
-        run: flake8 modules utils ara_loop.py 
+        run: flake8 src utils ara_loop.py 
 
       - name: Check formatting with black
         run: black --check .

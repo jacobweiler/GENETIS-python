@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["modules", "utils"]
+packages = ["src", "utils"]
 
 [project]
 name = "GENETIS-ARA"
@@ -17,5 +17,5 @@ dependencies = [
     "black", # using for formatting + documentation
     "isort", # also formatting
     "flake8", # linter
-    "pre-commit"
+    "pyyaml"
 ]
