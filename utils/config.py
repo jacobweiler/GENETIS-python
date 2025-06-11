@@ -17,28 +17,28 @@ def load_config(path="config.yml"):
 
 
 def run():
-    return CONFIG.get("run_params", {})
+    return CONFIG.get("run", {})
 
 
 def sim():
-    return CONFIG.get("sim_params", {})
+    return CONFIG.get("sim", {})
 
 
 def ga():
-    return CONFIG.get("ga_params", {})
+    return CONFIG.get("ga", {})
 
 
 def antenna():
-    return CONFIG.get("antenna_params", {})
+    return CONFIG.get("antennas", {})
 
 
 def vpol():
-    return CONFIG.get("antenna_params", {}).get("vpol_params", {})
+    return CONFIG.get("antennas", {}).get("vpol", {})
 
 
 def hpol():
-    return CONFIG.get("antenna_params", {}).get("hpol_params", {})
+    return CONFIG.get("antennas", {}).get("hpol", {})
 
 
 def job():
-    return CONFIG.get("job_submission", {})
+    return CONFIG.get("job", {})

@@ -1,40 +1,44 @@
-# Savestate-related functions
-import os
+# savestate class
 import yaml
+import logging
+from dataclasses import dataclass, asdict
+from pathlib import Path
+from datetime import datetime
 
 
-def initialize_state():
-    return {
-        "generation": 0,
-        "step": "genes",  # Goes 'genes', 'xf', 'ara', 'plot' in loop
-    }
+log = logging.getLogger(__name__)
 
 
-def get_current_state(filename):
-    """
-    Load or initialize a savestate from the given file.
+@dataclass
+class SaveState:
+    generation: int = 0
+    step: str = "genes"
+    timestamp: str = datetime.now().isoformat()
 
-    Args:
-        filename (str): Path to the savestate YAML file.
+    @classmethod
+    def load(cls, filepath: str | Path):
+        filepath = Path(filepath)
+        if filepath.exists():
+            log.info(f"Loading savestate from {filepath}")
+            with open(filepath, "r") as f:
+                data = yaml.safe_load(f)
+            return cls(**data)
+        else:
+            log.info(f"No savestate found at {filepath}, creating new one")
+            state = cls()
+            state.save(filepath)
+            return state
 
-    Returns:
-        dict: The current state dictionary.
-    """
-    if os.path.exists(filename):
-        print("Loading existing savestate...")
-        state = load_state(filename)
-    else:
-        print("No savestate found, initializing new state...")
-        state = initialize_state()
-        save_state(state, filename)
-    return state
+    def save(self, filepath: str | Path):
+        filepath = Path(filepath)
+        with open(filepath, "w") as f:
+            yaml.dump(asdict(self), f, sort_keys=False)
+        log.debug(f"Saved state to {filepath}")
 
-
-def save_state(state_obj, filename):
-    with open(filename, "w") as f:
-        yaml.dump(state_obj, f, sort_keys=False)
-
-
-def load_state(filename):
-    with open(filename, "r") as f:
-        return yaml.safe_load(f)
+    def update(self, step: str, generation: int | None = None, filepath: Path | str = None):
+        self.step = step
+        if generation is not None:
+            self.generation = generation
+        if filepath:
+            self.save(filepath)
+            log.info(f"Updated state: gen={self.generation}, step={self.step}")

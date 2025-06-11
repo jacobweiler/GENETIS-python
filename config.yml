@@ -1,10 +1,10 @@
-run_params:
+run:
   total_gens: 10 
   npop: 5  # Population size
   log_level: "DEBUG"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
   rng_seed: 32000 # Seed used for RNG in entire loop (so ara, genes, + operators)
 
-sim_params:
+sim:
   ara_processes: 10 # Number of jobs for each antenna in arasim
   num_keys: 1  # Number of keys for XFdtd on user
   freq_num: 60
@@ -15,10 +15,10 @@ sim_params:
   scale_factor: 1 # Fitness scale factor
   geo_factor: 1 # Fitness geometry factor
 
-antenna_params:
+antennas:
   antenna: "HPOL"  # Options: "VPOL", "HPOL"
 
-  vpol_params:
+  vpol:
     radius: 0  # Symmetric radii? 
     length: 0  # Symmetric length?
     angle: 0  # Symmetric angle? 
@@ -28,11 +28,11 @@ antenna_params:
     separation: 0 # Feed distance evolves? 
     nsections: 0 # 
 
-  hpol_params:
+  hpol:
     # Define HPOL-specific params here if needed later
     # placeholder: null
 
-ga_params: 
+ga: 
   # Operator Percentages
   reproduction: 0.1
   crossover: 0.4
@@ -40,10 +40,10 @@ ga_params:
   sigma: 0.05
   roulette: 0.8
   tournament: 0.2
-  rank: 0 # Toggle for rank choice 
-  elite: 0 # Toggle for elite 
+  rank: 0 
+  elite: 0 
 
-job_submission:
+job:
   single_batch: 0 # Toggle for single batch jobs
   max_jobs: 50 # Max jobs for your user
   threads_per_ara_job: 40 # Number of threads in any job requested (40 for pitzer on OSC)

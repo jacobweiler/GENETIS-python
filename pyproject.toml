@@ -10,7 +10,7 @@ name = "GENETIS-ARA"
 version = "0.1"
 description="GENETIS Genetic Algorithm to evolve antennas in ARA deployment"
 dependencies = [
-    #"shared-code @ git+https://github.com/osu-particle-astrophysics/Shared-Code.git@add_hpol", 
+    "shared-code @ git+https://github.com/osu-particle-astrophysics/Shared-Code.git@add_hpol", 
     "numpy",
     "pandas",
     "matplotlib",

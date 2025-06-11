@@ -9,7 +9,7 @@ Using this loop as testing grounds to do the following:
 Probably some other stuff too
 
 ## Install 
-conda env create -f environment.yaml
+conda env create -f environment.yml
 conda activate genetis_env
 
 ## Run
