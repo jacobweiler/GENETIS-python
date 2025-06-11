@@ -13,5 +13,9 @@ dependencies = [
     #"shared-code @ git+https://github.com/osu-particle-astrophysics/Shared-Code.git@add_hpol", 
     "numpy",
     "pandas",
-    "matplotlib"
+    "matplotlib",
+    "black", # using for formatting + documentation
+    "isort", # also formatting
+    "flake8", # linter
+    "pre-commit"
 ]

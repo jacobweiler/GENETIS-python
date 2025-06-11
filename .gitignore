@@ -6,6 +6,7 @@ __pycache__/
 
 # Packaging
 GENETIS_ARA.egg-info/
+build/
 
 # Loop Specific
 rundata/ 
