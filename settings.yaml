@@ -1,0 +1,53 @@
+# Settings File
+# Run 
+npop: 5
+n_gen: 10
+single_batch: 0 # Toggle for single batch jobs
+max_jobs: 50 # Max jobs for your user
+threads_per_ara_job: 40 # Number of threads in any job requested (40 for pitzer on OSC)
+log_level: "DEBUG"
+save_all_files: True
+test_loop: False
+
+# Sim
+ara_processes: 10 # Number of jobs for each antenna in arasim
+num_keys: 1  # Number of keys for XFdtd on user
+freq_num: 60
+freq_start: 83.33
+freq_step: 16.67
+nnt: 100000  # Total number of neutrinos thrown per antenna
+exp: 18  # Energy expontent 10^(exp)
+scale_factor: 1 # Fitness scale factor
+geo_factor: 1 # Fitness geometry factor
+
+# Antenna
+a_type: "VPOL"
+# VPOL
+curved: 0
+separation: 0
+# VPOL Symmetry
+nsections: 0
+radius: 0  
+length: 0  
+angle: 0 
+a: 0
+b: 0 
+
+# GA
+replacement_method: "random"
+steady_state: 0
+forced_diversity: 1
+
+# Operators (PERCENTAGE NOT NUMBER)
+crossover_rate: 0.80
+mutation_rate: 0.10
+reproduction_rate: 0.05
+sigma: 0.05
+
+# Selection (PERCENTAGE NOT NUMBER)
+tournament_rate: 0.9
+roulette_rate: 0.05
+rank_rate: 0.05
+tournament_size: 0.07
+
+# Run specific variables

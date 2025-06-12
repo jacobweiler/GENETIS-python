@@ -14,8 +14,9 @@ dependencies = [
     "numpy",
     "pandas",
     "matplotlib",
-    "black", # using for formatting + documentation
-    "isort", # also formatting
-    "flake8", # linter
-    "pyyaml"
+    "black", 
+    "isort",
+    "flake8",
+    "pyyaml",
+    "ruamel.yaml"
 ]

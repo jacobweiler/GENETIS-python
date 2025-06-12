@@ -5,9 +5,4 @@ dependencies:
   - python=3.13
   - pip
   - pip:
-    - shared-code @ git+https://github.com/osu-particle-astrophysics/Shared-Code.git@add_hpol
-    - black
-    - isort
-    - flake8
-    - pyyaml
-    
+    - -e .

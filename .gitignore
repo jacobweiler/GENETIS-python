@@ -9,6 +9,5 @@ GENETIS_ARA.egg-info/
 build/
 
 # Loop Specific
-rundata/ 
-savestates/
+Run_Outputs/ 
 *.pkl 

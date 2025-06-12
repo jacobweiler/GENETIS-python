@@ -2,69 +2,75 @@
 import argparse
 import logging
 from pathlib import Path
+from types import SimpleNamespace
 
-from utils import config, initialize
+from PyGA import Run_GA
+from utils.settings import get, load_settings
+from utils import initialize
 import src.xf.xfdtd_tools as xf
 import src.ara.arasim_tools as ara
 from utils.save_state_utils import SaveState
 import utils.plotting as plot
-import utils.run_ga as run_ga
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Specific Details")
-    parser.add_argument("runname", help="Name of run", type=str)
+    parser.add_argument("run_name", help="Name of run", type=str)
     return parser.parse_args()
 
 
 def ara_loop(g):
-    rundir = Path(f"rundata/{g.runname}")
-    statefile = Path(rundir) / f"{g.runname}.yml"
-    current_state = SaveState.load(statefile)
+    workingdir = Path.cwd()
+    run_dir = workingdir / f"Run_Outputs/{g.run_name}"
 
-    if not rundir.exists():
-        initialize.init(rundir)
+    if not run_dir.exists():
+        print("New run!") 
+        initialize.init(run_dir)
 
-    config_path = rundir / "config.yml"
-    log_path = Path(rundir / "job_outs/run.log")
+    statefile = run_dir / f"{g.run_name}.yml"
+    current_state = SaveState.load(SaveState, statefile)
 
-    config.load_config(config_path)
-    run_cfg = config.run()
+    settings_path = run_dir / "settings.yaml"
+    log_path = Path(run_dir / "job_outs/run.log")
 
-    initialize.setup_logging(run_cfg["log_level"], log_path)
+    load_settings(settings_path)
+
+    initialize.setup_logging(get("log_level"), log_path)
     log = logging.getLogger(__name__)
 
-    for gen in range(current_state["generation"], run_cfg["total_gens"]):
+
+    for gen in range(current_state.generation, get("n_gen")):
         input(
-            f"Starting generation {gen} at step {current_state['step']}. "
+            f"Starting generation {gen} at step: {current_state.step}. "
             "Press Enter to continue..."
         )
-        
-        if current_state["step"] == "genes":
+
+        if current_state.step == "ga":
             log.info("Generating genes...")
-            run_ga(g.runname, rundir, gen)
+            Run_GA.main(args = SimpleNamespace(run_name=g.run_name, 
+                                                workingdir=workingdir, gen=gen))
             current_state.update("xf", gen, statefile)
 
-        elif current_state["step"] == "xf": 
+        elif current_state.step == "xf":
             log.info("Simulating in XF...")
             xf.run_xf_step()
             current_state.update("ara", gen, statefile)
 
-        elif current_state["step"] == "ara":
+        elif current_state.step == "ara":
             log.info("Simulating in AraSim...")
             ara.run_ara_step()
             current_state.update("plot", gen, statefile)
 
-        elif current_state["step"] == "plot":
+        elif current_state.step == "plot":
             log.info("Plotting...")
             plot()
-            current_state.update("genes", gen, statefile)
+            current_state.update("ga", gen, statefile)
 
         else:
             log.error(f"Unknown step '{current_state['step']}' found in savestate.")
             raise ValueError(f"Unknown step '{current_state['step']}' in savestate.")
-        
-    log.info(f"All {run_cfg["total_gens"]} gens are done!!!")
 
+    log.info(f"All {get("n_gen")} gens are done!!!")
 
 
 if __name__ == "__main__":

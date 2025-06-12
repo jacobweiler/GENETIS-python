@@ -12,10 +12,13 @@ log = logging.getLogger(__name__)
 @dataclass
 class SaveState:
     generation: int = 0
-    step: str = "genes"
+    step: str = "ga"
     timestamp: str = datetime.now().isoformat()
 
     @classmethod
+    def __str__(self):
+        return f"SaveState(generation={self.generation}, step='{self.step}', timestamp='{self.timestamp}')"
+    
     def load(cls, filepath: str | Path):
         filepath = Path(filepath)
         if filepath.exists():
@@ -35,7 +38,9 @@ class SaveState:
             yaml.dump(asdict(self), f, sort_keys=False)
         log.debug(f"Saved state to {filepath}")
 
-    def update(self, step: str, generation: int | None = None, filepath: Path | str = None):
+    def update(
+        self, step: str, generation: int | None = None, filepath: Path | str = None
+    ):
         self.step = step
         if generation is not None:
             self.generation = generation
