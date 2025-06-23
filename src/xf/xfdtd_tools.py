@@ -204,6 +204,8 @@ class XFRunner:
         """
         Build and simulate antennas in XFdtd
         """
+        subprocess.run("module load xfdtd/7.10.2.3 && xfdtd --version", shell=True)
+        
         if self._all_simulations_done():
             log.info(f"Generation {self.gen}: All simulations already completed.")
             return

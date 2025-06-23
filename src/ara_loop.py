@@ -7,8 +7,8 @@ from types import SimpleNamespace
 from PyGA import Run_GA
 from utils.settings import get, load_settings
 from utils import initialize
-from src.xf.xfdtd_tools import XFRunner
-import src.ara.arasim_tools as ara
+from .xf.xfdtd_tools import XFRunner
+import ara.arasim_tools as ara
 from utils.save_state_utils import SaveState
 import utils.plotting as plot
 
@@ -33,7 +33,7 @@ def ara_loop(g):
     settings_path = run_dir / "settings.yaml"
     log_path = Path(run_dir / "job_outs/run.log")
 
-    load_settings(settings_path)
+    settings = load_settings(settings_path)
 
     initialize.setup_logging(get("log_level"), log_path)
     log = logging.getLogger(__name__)
@@ -62,7 +62,8 @@ def ara_loop(g):
 
         elif current_state.step == "xf":
             log.info("Simulating in XF...")
-            XFRunner.run_xf_step()
+            xf = XFRunner(run_dir, g.run_name, gen, settings)
+            xf.run_xf_step()
             current_state.update("ara", gen, statefile)
 
         elif current_state.step == "ara":
