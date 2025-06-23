@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from PyGA import Run_GA
 from utils.settings import get, load_settings
 from utils import initialize
-import src.xf.xfdtd_tools as xf
+from src.xf.xfdtd_tools import XFRunner
 import src.ara.arasim_tools as ara
 from utils.save_state_utils import SaveState
 import utils.plotting as plot
@@ -21,11 +21,11 @@ def parse_args():
 
 def ara_loop(g):
     workingdir = Path.cwd()
-    run_dir = workingdir / f"Run_Outputs/{g.run_name}"
+    run_dir = workingdir / "Run_Outputs" / g.run_name
 
     if not run_dir.exists():
-        print("New run!") 
-        initialize.init(run_dir)
+        print("New run!")
+        initialize.init(g.run_name)
 
     statefile = run_dir / f"{g.run_name}.yml"
     current_state = SaveState.load(SaveState, statefile)
@@ -38,22 +38,31 @@ def ara_loop(g):
     initialize.setup_logging(get("log_level"), log_path)
     log = logging.getLogger(__name__)
 
-
     for gen in range(current_state.generation, get("n_gen")):
-        input(
-            f"Starting generation {gen} at step: {current_state.step}. "
-            "Press Enter to continue..."
-        )
+        if gen == 0:
+            input(
+                f"Starting generation {gen} at step: {current_state.step}. "
+                "Press Enter to continue..."
+            )
+        else:
+            print(f"Starting generation {gen} at step: {current_state.step}. ")
 
         if current_state.step == "ga":
+            log.info("Creating generation directory")
+            gen_dir = run_dir / "Generation_Data" / str(gen)
+            gen_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
+
             log.info("Generating genes...")
-            Run_GA.main(args = SimpleNamespace(run_name=g.run_name, 
-                                                workingdir=workingdir, gen=gen))
+            Run_GA.main(
+                args=SimpleNamespace(
+                    run_name=g.run_name, workingdir=workingdir, gen=gen
+                )
+            )
             current_state.update("xf", gen, statefile)
 
         elif current_state.step == "xf":
             log.info("Simulating in XF...")
-            xf.run_xf_step()
+            XFRunner.run_xf_step()
             current_state.update("ara", gen, statefile)
 
         elif current_state.step == "ara":
@@ -63,7 +72,7 @@ def ara_loop(g):
 
         elif current_state.step == "plot":
             log.info("Plotting...")
-            plot()
+            # plot()
             current_state.update("ga", gen, statefile)
 
         else:

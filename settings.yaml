@@ -2,8 +2,7 @@
 # Run 
 npop: 5
 n_gen: 10
-single_batch: 0 # Toggle for single batch jobs
-max_jobs: 50 # Max jobs for your user
+max_jobs: 50 # Max jobs for user
 threads_per_ara_job: 40 # Number of threads in any job requested (40 for pitzer on OSC)
 log_level: "DEBUG"
 save_all_files: True

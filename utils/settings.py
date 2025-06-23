@@ -16,11 +16,11 @@ def load_settings(path="settings.yaml"):
 def get(key, default=None):
     """
     Retrieve a value from the global settings.
-    
+
     Args:
         key (str): The key to look up.
         default: Value to return if key is not found.
-    
+
     Returns:
         The value associated with the key, or default.
     """

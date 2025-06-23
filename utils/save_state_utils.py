@@ -17,8 +17,9 @@ class SaveState:
 
     @classmethod
     def __str__(self):
-        return f"SaveState(generation={self.generation}, step='{self.step}', timestamp='{self.timestamp}')"
-    
+        return f"SaveState(generation={self.generation}, step='{self.step}', \
+                    timestamp='{self.timestamp}')"
+
     def load(cls, filepath: str | Path):
         filepath = Path(filepath)
         if filepath.exists():

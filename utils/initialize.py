@@ -35,17 +35,19 @@ def setup_logging(log_level: str = "INFO", log_file: str | Path = None):
         logging.debug(f"Logging to file: {log_file}")
 
 
-def init(run_dir_path: str | Path, settings_path: str | Path = "settings.yaml"):
-    run_dir = Path(run_dir_path)
+def init(run_name: str | Path, settings_path: str | Path = "settings.yaml"):
+    workingdir = Path.cwd()
+    run_dir = workingdir / "Run_Outputs" / run_name
     run_dir.mkdir(parents=True, exist_ok=True)
 
     # Create subdirectories
-    (run_dir / "job_outs" / "xf_out").mkdir(parents=True, exist_ok=True)
-    (run_dir / "job_outs" / "xf_err").mkdir(parents=True, exist_ok=True)
-    (run_dir / "job_outs" / "ara_out").mkdir(parents=True, exist_ok=True)
-    (run_dir / "job_outs" / "ara_err").mkdir(parents=True, exist_ok=True)
-    (run_dir / "plots").mkdir(parents=True, exist_ok=True)
-    (run_dir / "generation_data").mkdir(parents=True, exist_ok=True)
+    (run_dir / "job_outs" / "xf_out").mkdir(parents=True, exist_ok=True, mode=0o775)
+    (run_dir / "job_outs" / "xf_err").mkdir(parents=True, exist_ok=True, mode=0o775)
+    (run_dir / "job_outs" / "ara_out").mkdir(parents=True, exist_ok=True, mode=0o775)
+    (run_dir / "job_outs" / "ara_err").mkdir(parents=True, exist_ok=True, mode=0o775)
+    (run_dir / "plots").mkdir(parents=True, exist_ok=True, mode=0o775)
+    (run_dir / "generation_data").mkdir(parents=True, exist_ok=True, mode=0o775)
+    (run_dir / "xmacros").mkdir(parents=True, exist_ok=True, mode=0o775)
 
     # Copy settings.yaml to run_dir
     settings_path = Path(settings_path)
@@ -64,7 +66,17 @@ def init(run_dir_path: str | Path, settings_path: str | Path = "settings.yaml"):
     with open(dest_settings, "r") as f:
         settings_data = yaml.load(f)
 
+    xf_proj = run_dir / f"{run_name}.xf"
+    xmacros_dir = run_dir / "xmacros"
+    global_xmacros = workingdir / "src/xf"
+    ara_scripts = workingdir / "src/ara"
+
+    settings_data["run_name"] = run_name
     settings_data["run_dir"] = str(run_dir.resolve())
+    settings_data["xf_proj"] = str(xf_proj.resolve())
+    settings_data["run_xmacros"] = str(xmacros_dir.resolve())
+    settings_data["xmacros"] = str(global_xmacros.resolve())
+    settings_data["ara_scripts"] = str(ara_scripts.resolve())
 
     # Add or replace rng_seed only if missing or set to "random"
     if "rng_seed" not in settings_data or settings_data["rng_seed"] == "random":
@@ -75,7 +87,7 @@ def init(run_dir_path: str | Path, settings_path: str | Path = "settings.yaml"):
     with open(dest_settings, "w") as f:
         yaml.dump(settings_data, f)
 
-    log.info(f"Updated settings.yaml with run_dir and rng_seed (if needed)")
+    log.info("Updated settings.yaml with run_dir and rng_seed")
 
     # Save current date to start_date.txt
     start_date_path = run_dir / "start_date.txt"
