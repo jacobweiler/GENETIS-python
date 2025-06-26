@@ -103,7 +103,7 @@ for (var k = start; k <= end; k++){
     for (var i = 1; i <= freqCoefficients; i++){
         if (typeof node === 'undefined'){
             var ind_num = k - (gen * popsize);
-            var file = RunDir + "/uan_files/" + gen + "_uan_files/" + ind_num + "/";
+            var file = RunDir + "/Generation_Data/" + gen + "/uan_files/"+ ind_num + "/";
             file = file + gen + "_" + ind_num + "_";
             file = file + (i) + ".uan";
         } else {
@@ -175,7 +175,7 @@ for (var k = start; k <= end; k++){
         }
         */
         var ind_num = k - (gen * popsize);
-        var file = RunDir + "/Generation_Data/";
+        var file = RunDir + "/Generation_Data/" + gen + "/";
         file = file + gen + "_" + ind_num;
         file = file + "_vswr_s11_imp.csv";
 

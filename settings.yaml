@@ -3,7 +3,8 @@
 npop: 5
 n_gen: 10
 max_jobs: 50 # Max jobs for user
-threads_per_ara_job: 40 # Number of threads in any job requested (40 for pitzer on OSC)
+job_threads: 40 # Number of threads in any job requested (40 for pitzer on OSC)
+ara_exec: ""
 log_level: "DEBUG"
 save_all_files: True
 test_loop: False
