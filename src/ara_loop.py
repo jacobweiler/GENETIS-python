@@ -5,9 +5,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from PyGA import Run_GA
-from utils.settings import get, load_settings
+from utils.settings import get, load_settings, all
 from utils import initialize
-from .xf.xfdtd_tools import XFRunner
+from xf.xfdtd_tools import XFRunner
 import ara.arasim_tools as ara
 from utils.save_state_utils import SaveState
 import utils.plotting as plot
@@ -33,12 +33,12 @@ def ara_loop(g):
     settings_path = run_dir / "settings.yaml"
     log_path = Path(run_dir / "job_outs/run.log")
 
-    settings = load_settings(settings_path)
+    load_settings(settings_path)
 
-    initialize.setup_logging(get("log_level"), log_path)
+    initialize.setup_logging(get('log_level'), log_path)
     log = logging.getLogger(__name__)
 
-    for gen in range(current_state.generation, get("n_gen")):
+    for gen in range(current_state.generation, get('n_gen')):
         if gen == 0:
             input(
                 f"Starting generation {gen} at step: {current_state.step}. "
@@ -60,18 +60,18 @@ def ara_loop(g):
             )
             current_state.update("xf", gen, statefile)
 
-        elif current_state.step == "xf":
+        if current_state.step == "xf":
             log.info("Simulating in XF...")
-            xf = XFRunner(run_dir, g.run_name, gen, settings)
+            xf = XFRunner(run_dir, g.run_name, gen, all())
             xf.run_xf_step()
             current_state.update("ara", gen, statefile)
 
-        elif current_state.step == "ara":
+        if current_state.step == "ara":
             log.info("Simulating in AraSim...")
-            ara.run_ara_step()
+            #ara.run_ara_step()
             current_state.update("plot", gen, statefile)
 
-        elif current_state.step == "plot":
+        if current_state.step == "plot":
             log.info("Plotting...")
             # plot()
             current_state.update("ga", gen, statefile)
@@ -80,7 +80,7 @@ def ara_loop(g):
             log.error(f"Unknown step '{current_state['step']}' found in savestate.")
             raise ValueError(f"Unknown step '{current_state['step']}' in savestate.")
 
-    log.info(f"All {get("n_gen")} gens are done!!!")
+    log.info(f"All {get('n_gen')} gens are done!!!")
 
 
 if __name__ == "__main__":

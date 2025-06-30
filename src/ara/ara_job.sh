@@ -1,15 +1,13 @@
 #!/bin/bash
 ## This job is designed to be submitted by an array batch submission
 ## Here's the command:
-## sbatch --array=1-NPOP*SEEDS%max --export=ALL,(variables) AraSimCall_Array.sh
+## sbatch --array=1-NPOP*SEEDS%max --export=ALL,(variables) ara_job.sh
 #SBATCH -A PAS1960
 #SBATCH -t 4:00:00
 #SBATCH -N 1
 #SBATCH -n 40
 
 # Need to set this up to be used for either HPOL or VPOL
-
-source $WorkingDir/Run_Outputs/$RunName/setup.sh
 
 source /fs/ess/PAS1960/BiconeEvolutionOSC/new_root/new_root_setup.sh
 
@@ -25,8 +23,6 @@ init=$((${seed}-1))
 echo "init is $init"
 
 echo a_${num}_${seed}.txt
-
-chmod -R 777 $AraSimDir/outputs/
 
 # We need to create a setup file for each individual in the population 
 gain_file="${RunDir}/txt_files/a_${num}.txt "
@@ -52,9 +48,6 @@ cd $TMPDIR
 
 echo "Done running AraSim processes"
 
-echo "Let's see what's in TMPDIR:"
-ls -alrt
-
 echo "Moving AraSim outputs to final destination"
 for (( i=0; i<${threads}; i++ ))
 do
@@ -62,17 +55,7 @@ do
     dataoutloc="$TMPDIR/AraOut_${gen}_${num}_${indiv_thread}.txt"
     #mv AraOut.setup.txt.run${indiv_thread}.root $WorkingDir/Antenna_Performance_Metric/AraOut_${gen}_${num}_${indiv_thread}.root
     rm AraOut.setup.txt.run${indiv_thread}.root
-    mv "$dataoutloc $WorkingDir/Run_Outputs/$RunName/AraSim_Outputs/${gen}_AraSim_Outputs/AraOut_${gen}_${num}_${indiv_thread}.txt"
+    mv "$dataoutloc $WorkingDir/Run_Outputs/$RunName/Generation_Data/${gen}/ara_outputs/AraOut_${gen}_${num}_${indiv_thread}.txt"
 done
 
 wait
-
-echo $gen > $TMPDIR/${num}_${seed}.txt
-echo $num >> $TMPDIR/${num}_${seed}.txt
-echo $seed >> $TMPDIR/${num}_${seed}.txt
-cd $TMPDIR
-
-echo "Let's see what's in TMPDIR:"
-ls -alrt
-
-mv ${num}_${seed}.txt $WorkingDir/Run_Outputs/$RunName/AraSimFlags

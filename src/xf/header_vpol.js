@@ -1,8 +1,8 @@
 /**************************************** Set Global Variables **************************************************/
 var units = " cm";
 var sepDist = 3.0;
-var path = workingdir + "/Run_Outputs/" + RunName + "/Generation_Data/" + gen + "_generationDNA.csv"
-
+var path = workingdir + "/Run_Outputs/" + RunName + "/Generation_Data/" + gen + "/" + gen + "_generationDNA.csv"
+Output.println(path);
 // create the frequency array
 var freq = [];
 for (var i = 0; i < freqCoefficients; i++) {

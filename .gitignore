@@ -9,5 +9,8 @@ GENETIS_ARA.egg-info/
 build/
 
 # Loop Specific
-Run_Outputs/ 
+Run_Outputs/
+src/ara/__pycache__/
+src/xf/__pycache__/
+utils/__pycache__/
 *.pkl 

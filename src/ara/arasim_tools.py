@@ -22,34 +22,70 @@ class AraRunner:
         self.a_type = settings["a_type"]
         self.threads = settings["job_threads"]
 
-        self.ara_output_dir = self.run_dir / "AraSim_Outputs" / f"{gen}_AraSim_Outputs"
-        self.ara_output_dir.mkdir(parents=True, exist_ok=True)
+        self.ara_dir = self.gen_dir / "ara_outputs"
+        self.ara_dir.mkdir(parents=True, exist_ok=True)
+        self.csv_dir = self.gen_dir / "csv_files"
+        self.csv_dir.mkdir(parents=True, exist_ok=True)
+        self.dat_dir = self.gen_dir / "dat_files"
+        self.dat_dir.mkdir(parents=True, exist_ok=True)  
+        
 
-    def _convert_uan_to_ara_format(self):
-        dat_out_dir = self.gen_dir / "dat_files"
-        dat_out_dir.mkdir(parents=True, exist_ok=True)
+def _convert_uan_to_ara_format(self):
+    # Antenna
+    if self.a_type == "VPOL":
+        gain_col = 2
+        phase_col = 4
+    elif self.a_type == "HPOL":
+        gain_col = 3
+        phase_col = 5
+    else:
+        raise ValueError(f"Unknown antenna type: {self.a_type}")
 
-        for indiv in range(1, self.npop + 1):
-            uan_path = self.gen_dir / "uan_files" / f"{indiv}"
-            a_dat = dat_out_dir / f"a_{indiv}.dat"
-            gain_data = []
-            for freq in range(1, self.settings["freq_num"] + 1):
-                file = uan_path / f"{self.gen}_{indiv}_{freq}.uan"
-                if not file.exists():
-                    raise FileNotFoundError(f"Missing UAN file: {file}")
-                data = np.loadtxt(file)
-                gain_data.append(data[:, :2]) 
+    freqVals = self.settings["freq_vals"]
+    numFreq = len(freqVals)
+    n = 37
+    m = 73
 
-            gain_data = np.stack(gain_data, axis=0)
-            averaged = np.mean(gain_data, axis=0)
-            np.savetxt(a_dat, averaged)
-            log.debug(f"Converted UAN to Ara format: {a_dat}")
+    for indiv in range(1, self.npop + 1):
+        dat_path = self.dat_dir / f"a_{indiv}.dat"
+        with open(dat_path, "w") as datFile:
+            for freq_idx, freq in enumerate(freqVals, start=1):
+                datFile.write(f"freq : {freq:.2f} MHz\n")
+                datFile.write("SWR : 1.965000\n")
+                datFile.write(" Theta     Phi     Gain(dB)     Gain     Phase(deg) \n")
+
+                uan_file = (
+                    self.gen_dir
+                    / "uan_files"
+                    / f"{indiv}"
+                    / f"{self.gen}_{indiv}_{freq_idx}.uan"
+                )
+
+                if not uan_file.exists():
+                    raise FileNotFoundError(f"Missing UAN file: {uan_file}")
+
+                try:
+                    data = np.loadtxt(uan_file, skiprows=18, usecols=(0,1,2,3,4,5))
+                except Exception as e:
+                    raise ValueError(f"Error loading {uan_file}: {e}")
+
+                theta = data[:, 0]
+                phi   = data[:, 1]
+                gain_db = data[:, gain_col]
+                phase = data[:, phase_col]
+                linear_gain = 10 ** (gain_db / 10)
+
+                for t, p, gdb, lg, ph in zip(theta, phi, gain_db, linear_gain, phase):
+                    datFile.write(
+                        f"{t:.2f}\t{p:.2f}\t{gdb:.2f}\t{lg:.2f}\t{ph:.2f}\n"
+                    )
+        log.info(f"Converted UAN to Ara .dat format for individual {indiv} at {dat_path}")
 
     def _submit_arasim_jobs(self):
         total_jobs = self.npop * self.seeds
         cmd = [
             "sbatch",
-            f"--array=1-{total_jobs}%{min(total_jobs, 100)}",
+            f"--array=1-{total_jobs}%{min(total_jobs, 50)}",
             f"--export=ALL,WorkingDir={self.working_dir},RunName={self.run_name},gen={self.gen},Seeds={self.seeds}",
             f"{self.working_dir}/Batch_Jobs/ara_job.sh"
         ]
@@ -59,7 +95,7 @@ class AraRunner:
     def _check_arasim_completion(self, poll_interval_sec=150):
         expected_count = self.npop * self.seeds * self.threads
         while True:
-            txt_files = list(self.ara_output_dir.glob("AraOut_*.txt"))
+            txt_files = list(self.ara_dir.glob("AraOut_*.txt"))
             if len(txt_files) >= expected_count:
                 log.info("All AraSim output files found.")
                 break
@@ -67,56 +103,124 @@ class AraRunner:
             time.sleep(poll_interval_sec)
 
     def _calculate_fitness(self):
-        gen_dna_file = self.run_dir / f"Generation_Data/{self.gen}/{self.gen}_generationDNA.csv"
-        dna = np.loadtxt(gen_dna_file, delimiter=",")
+        """
+        Calculate the AraSim fitness for each individual.
+        """
         bhrad = 7.5 / self.settings.get("geoscalefactor", 1.0)
         scalefactor = self.settings.get("scalefactor", 1.0)
-        a_type = self.a_type
+        
+        # load DNA data
+        dna_file = self.gen_dir / f"{self.gen}_generationDNA.csv"
+        dna = np.loadtxt(dna_file, delimiter=",")
 
-        fitnesses, veffs = [], []
-        for i in range(1, self.npop + 1):
+        fitnesses, veffs, fit_lowerrors, fit_higherrors = [], [], [], []
+        lowerrors, higherrors = [], []
+
+        for indiv in range(1, self.npop + 1):
+            veff_sum = 0.0
+            sqerr_low = 0.0
+            sqerr_high = 0.0
+            seeds_successful = self.seeds * self.threads
+
             values = []
             for seed in range(1, self.seeds + 1):
                 for thread in range(self.threads):
-                    path = self.ara_output_dir / f"AraOut_{self.gen}_{i}_{(seed - 1)*self.threads + thread}.txt"
+                    idx = (seed - 1) * self.threads + thread
+                    path = self.ara_dir / f"AraOut_{self.gen}_{indiv}_{idx}.txt"
                     try:
                         with open(path, "r") as f:
-                            val = float(f.readline().strip())
-                            values.append(val)
+                            lines = f.readlines()
+                            for line in lines:
+                                if "Veff(ice) :" in line:
+                                    veff = float(line.split()[3])
+                                if "error plus :" in line:
+                                    parts = line.split(" : ")[1:]
+                                    errplus = float(parts[0].split()[0])
+                                    errminus = float(parts[1].split()[0])
+                        if veff:
+                            values.append(veff)
+                            veff_sum += veff
+                            sqerr_low += errplus**2
+                            sqerr_high += errminus**2
+                        else:
+                            seeds_successful -= 1
                     except Exception:
+                        seeds_successful -= 1
                         continue
 
-            avg_val = np.mean(values) if values else 0.0
-            veffs.append(avg_val)
-
-            # Determine max radius based on antenna type
-            indiv_data = dna[i - 1]
-            if a_type in [0, 1, 2]:
-                max_xy = indiv_data[0]
+            if seeds_successful == 0:
+                avg_veff = 0.0
+                avg_lowerr = 0.0
+                avg_higherr = 0.0
+                log.warning(f"No successful AraSim seeds for individual {indiv}")
             else:
+                avg_veff = veff_sum / seeds_successful
+                avg_lowerr = np.sqrt(sqerr_low) / seeds_successful
+                avg_higherr = np.sqrt(sqerr_high) / seeds_successful
+
+            indiv_data = dna[indiv - 1]
+            if self.a_type == "VPOL":
+                max_xy = indiv_data[0]
+            elif self.a_type == "HPOL":
                 max_xy = indiv_data[1] + 0.02
 
-            penalty = np.exp(-(scalefactor * (max_xy - bhrad) ** 2)) if max_xy >= bhrad else 1.0
-            fitnesses.append(avg_val * penalty)
+            penalty = 1.0
+            if max_xy >= bhrad and self.settings.get("bh_penalty", 0):
+                penalty = np.exp(-(scalefactor * (max_xy - bhrad) ** 2))
 
-        # Save to CSV
-        csv_dir = self.run_dir / "csv_files"
-        csv_dir.mkdir(exist_ok=True)
-        np.savetxt(csv_dir / f"{self.gen}_Fitness.csv", fitnesses, delimiter=",")
-        log.info(f"Saved AraSim fitness to {csv_dir}/{self.gen}_Fitness.csv")
+            fitness = avg_veff * penalty
+            fitnesses.append(fitness)
+            veffs.append(avg_veff)
+            fit_lowerrors.append(avg_lowerr * penalty)
+            fit_higherrors.append(avg_higherr * penalty)
+            lowerrors.append(avg_lowerr)
+            higherrors.append(avg_higherr)
+
+            log.info(f"Individual {indiv}: Veff={avg_veff:.4e}, penalty={penalty:.4f}, fitness={fitness:.4e}")
+
+        # save results
+        np.savetxt(self.csv_dir / f"{self.gen}_Fitness.csv", fitnesses, delimiter=",")
+        np.savetxt(self.csv_dir / f"{self.gen}_Fitness_Error.csv",
+                   np.column_stack((fit_higherrors, fit_lowerrors)), delimiter=",")
+        np.savetxt(self.csv_dir / f"{self.gen}_Veff.csv", veffs, delimiter=",")
+        np.savetxt(self.csv_dir / f"{self.gen}_Veff_Error.csv",
+                   np.column_stack((higherrors, lowerrors)), delimiter=",")
+
+        log.info(f"AraSim fitness results saved to {self.csv_dir}")
+
+    def _arasim_jobs_still_running(self):
+        try:
+            result = subprocess.run(
+                ["squeue", "-n", self.run_name, "--noheader"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                check=True,
+                text=True,
+            )
+            return bool(result.stdout.strip())
+        except subprocess.CalledProcessError:
+            return False
+
+    def _is_already_done(self):
+        expected_output = self.gen_dir / "csv_files" / f"{self.gen}_Fitness.csv"
+        return expected_output.exists()
 
     def run_ara_step(self):
         try:
-            if not self._is_already_done():
+            if self._is_already_done():
+                log.info(f"Generation {self.gen}: AraSim step already completed.")
+                return
+
+            if self._arasim_jobs_still_running():
+                log.info("AraSim jobs already running — skipping submission and waiting for completion.")
+                self._check_arasim_completion()
+                self._calculate_fitness()
+            else:
                 self._convert_uan_to_ara_format()
                 self._submit_arasim_jobs()
                 self._check_arasim_completion()
                 self._calculate_fitness()
-            else:
-                log.info(f"Generation {self.gen}: AraSim step already completed.")
+
         except Exception as e:
             log.error(f"AraSim step failed: {e}", exc_info=True)
 
-    def _is_already_done(self):
-        expected_output = self.run_dir / "csv_files" / f"{self.gen}_Fitness.csv"
-        return expected_output.exists()

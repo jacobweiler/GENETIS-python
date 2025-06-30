@@ -4,7 +4,7 @@ npop: 5
 n_gen: 10
 max_jobs: 50 # Max jobs for user
 job_threads: 40 # Number of threads in any job requested (40 for pitzer on OSC)
-ara_exec: ""
+ara_exec: "/users/PAS1977/jacobweiler/GENETIS/test_repos/UpdateAraSim2"
 log_level: "DEBUG"
 save_all_files: True
 test_loop: False
@@ -24,7 +24,7 @@ geo_factor: 1 # Fitness geometry factor
 a_type: "VPOL"
 # VPOL
 curved: 0
-separation: 0
+sep: 0
 # VPOL Symmetry
 nsections: 0
 radius: 0  

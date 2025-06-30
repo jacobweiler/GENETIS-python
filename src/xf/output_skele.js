@@ -101,15 +101,11 @@ for (var k = start; k <= end; k++){
     }
     var freqCoefficients = 60;
     for (var i = 1; i <= freqCoefficients; i++){
-        if (typeof node === 'undefined'){
-            var ind_num = k - (gen * popsize);
-            var file = RunDir + "/Generation_Data/" + gen + "/uan_files/"+ ind_num + "/";
-            file = file + gen + "_" + ind_num + "_";
-            file = file + (i) + ".uan";
-        } else {
-            var file = RunDir + "/tempFiles/" + node + "/uan_files/";
-            file = file + "1_1_" + (i) + ".uan";
-        }
+        var ind_num = k - (gen * popsize);
+        var file = RunDir + "/Generation_Data/" + gen + "/uan_files/"+ ind_num + "/";
+        file = file + gen + "_" + ind_num + "_";
+        file = file + (i) + ".uan";
+        
         Output.println(file);
         Output.println("thdata: " + thdata );
         Output.println("thphase: " + thphase);

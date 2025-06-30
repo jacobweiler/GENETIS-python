@@ -5,11 +5,12 @@ import shutil
 from datetime import datetime
 from ruamel.yaml import YAML
 import random
+from typing import Union
 
 log = logging.getLogger(__name__)
 
 
-def setup_logging(log_level: str = "INFO", log_file: str | Path = None):
+def setup_logging(log_level: str = "INFO", log_file: Union[str, Path] = None):
     level = getattr(logging, log_level.upper(), logging.INFO)
 
     # Clear existing handlers
@@ -35,7 +36,7 @@ def setup_logging(log_level: str = "INFO", log_file: str | Path = None):
         logging.debug(f"Logging to file: {log_file}")
 
 
-def init(run_name: str | Path, settings_path: str | Path = "settings.yaml"):
+def init(run_name: Union[str, Path], settings_path: Union[str, Path] = "settings.yaml"):
     workingdir = Path.cwd()
     run_dir = workingdir / "Run_Outputs" / run_name
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -46,7 +47,6 @@ def init(run_name: str | Path, settings_path: str | Path = "settings.yaml"):
     (run_dir / "job_outs" / "ara_out").mkdir(parents=True, exist_ok=True, mode=0o775)
     (run_dir / "job_outs" / "ara_err").mkdir(parents=True, exist_ok=True, mode=0o775)
     (run_dir / "plots").mkdir(parents=True, exist_ok=True, mode=0o775)
-    (run_dir / "generation_data").mkdir(parents=True, exist_ok=True, mode=0o775)
     (run_dir / "xmacros").mkdir(parents=True, exist_ok=True, mode=0o775)
 
     # Copy settings.yaml to run_dir
@@ -70,7 +70,7 @@ def init(run_name: str | Path, settings_path: str | Path = "settings.yaml"):
     xmacros_dir = run_dir / "xmacros"
     global_xmacros = workingdir / "src/xf"
     ara_scripts = workingdir / "src/ara"
-
+    settings_data["workingdir"] = str(workingdir.resolve())
     settings_data["run_name"] = run_name
     settings_data["run_dir"] = str(run_dir.resolve())
     settings_data["xf_proj"] = str(xf_proj.resolve())

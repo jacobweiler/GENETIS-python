@@ -63,18 +63,22 @@ class XFRunner:
             f.write(f"var freqCoefficients = {self.settings['freq_num']};\n")
             f.write(f"var CURVED = {self.settings['curved']};\n")
             f.write(f"var NSECTIONS = {self.settings['nsections']};\n")
-            f.write(f"var evolve_sep = {self.settings['seperation']};\n")
+            f.write(f"var evolve_sep = {self.settings['sep']};\n")
             if self.gen == 0:
                 f.write(f'App.saveCurrentProjectAs("{self.run_dir/self.run_name}");\n')
-        macro_parts = [
-            "headerVPOL.js", "functioncallsVPOL.js", "build_vpol.js",
-            "CreatePEC.js", "CreateVPOLAntennaSource.js", "CreateGridVPOL.js",
-            "CreateSensors.js", "CreateAntennaSimulationData.js",
-            "QueueSimulation.js", "MakeImage.js"
-        ]
-        for part in macro_parts:
-            with open(self.xmacros_dir / part) as src:
-                f.write(src.read())
+
+            # move this inside the same with block so f stays open
+            macro_parts = [
+                "header_vpol.js", "calls_vpol.js", "build_vpol.js",
+                "create_pec.js", "vpol_feed.js", "create_grid_vpol.js",
+                "create_sensors.js", "create_ant_sim_data.js",
+                "queue_sim.js", "make_image.js"
+            ]
+            for part in macro_parts:
+                with open(self.xmacros_dir / part) as src:
+                    f.write(src.read())
+        macro_path.chmod(0o775)
+
         log.info(f"simulation_PEC.xmacro created at {macro_path}")
 
     def _create_simulation_macro_hpol(self):
@@ -90,15 +94,18 @@ class XFRunner:
             f.write(f"var freqCoefficients = {self.settings['freq_num']};\n")
             if self.gen == 0:
                 f.write(f'App.saveCurrentProjectAs("{self.run_dir/self.run_name}");\n')
-        macro_parts = [
-            "headerHPOL.js", "functioncallsHPOL.js", "build_hpol.js",
-            "CreatePEC.js", "CreateHPOLAntennaSource.js", "CreateGridHPOL.js",
-            "CreateSensors.js", "CreateAntennaSimulationData.js",
-            "QueueSimulation.js", "MakeImage.js"
-        ]
-        for part in macro_parts:
-            with open(self.xmacros_dir / part) as src:
-                f.write(src.read())
+
+            # keep the for-loop inside the same with-block
+            macro_parts = [
+                "header_hpol.js", "calls_hpol.js", "build_hpol.js",
+                "create_pec.js", "create_al.js", "hpol_feed.js",
+                "create_sensors.js", "create_ant_sim_data.js",
+                "queue_sim.js", "make_image.js", "create_grid_hpol.js"
+            ]
+            for part in macro_parts:
+                with open(self.xmacros_dir / part) as src:
+                    f.write(src.read())
+        macro_path.chmod(0o775)
         log.info(f"simulation_PEC.xmacro created at {macro_path}")
 
     def _run_build_macro(self):
@@ -120,10 +127,11 @@ class XFRunner:
             "sbatch",
             f"--array=1-{self.npop}%{batch_size}",
             f"--export=ALL,WorkingDir={self.working_dir},RunName={self.run_name},"
-            f"indiv=0,gen={self.gen},batch_size={batch_size}",
+            f"indiv=0,gen={self.gen},batch_size={batch_size},NPOP={self.npop},"
+            f"XFProj={self.xf_proj}",
             f"--job-name={self.run_name}",
             f"--time={job_time}",
-            str(self.working_dir / "Batch_Jobs" / "GPU_XF_Job.sh"),
+            str(self.working_dir / "src" / "xf" / "xf_gpu.sh"),
         ]
         subprocess.run(cmd, check=True)
         log.info(f"Submitted XF jobs with batch size {batch_size}.")
@@ -149,16 +157,7 @@ class XFRunner:
             log.warning("XF output macro execution failed or was interrupted.")
             log.warning(e)
 
-    def run_xf_step(self, poll_interval=150):
-        """
-        Run XF simulation step:
-        - If simulations already complete, run output
-        - If not complete but jobs are running, wait
-        - If not complete and no jobs are running, submit jobs
-        """
-        log.info(f"Generation {self.gen}: Starting XF simulation step...")
-
-        def jobs_still_running():
+    def _jobs_still_running(self):
             try:
                 result = subprocess.run(
                     ["squeue", "-n", self.run_name, "--noheader"],
@@ -170,16 +169,41 @@ class XFRunner:
                 return bool(result.stdout.strip())
             except subprocess.CalledProcessError:
                 return False
+    
+    def _all_simulation_run_dirs_exist(self):
+        return all(
+            (
+                self.xf_proj
+                / "Simulations"
+                / f"{self._get_sim_num(i):06d}"
+                / "Run0001"
+            ).exists()
+            for i in range(1, self.npop + 1)
+        )
 
-        if self._all_simulations_done():
+    def run_xf_step(self, poll_interval=150):
+        """
+        Run XF simulation step:
+        - If simulations already complete, run output
+        - If not complete but jobs are running, wait
+        - If not complete and no jobs are running, submit jobs
+        """
+        if self._all_simulations_done(): 
             log.info(f"Generation {self.gen}: Simulations already completed. Skipping job submission.")
-        elif jobs_still_running():
+        elif self._jobs_still_running():
             log.info(f"Jobs for {self.run_name} are already running. Skipping build macro and job submission.")
+        elif self._all_simulation_run_dirs_exist():
+            log.info("All simulation directories exist, assuming modeling done. Submitting jobs directly.")
+            self._submit_jobs()
         else:
             self._clean_sim_dirs()
-            uan_dir = self.run_dir / "Generation_Data" / self.gen / "uan_files"
+            uan_dir = self.run_dir / "Generation_Data" / str(self.gen) / "uan_files"
             uan_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
-            
+
+            for i in range(1, self.npop + 1):
+                indiv_dir = uan_dir / f"{i}"
+                indiv_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
+
             if self.a_type == "VPOL":
                 self._create_simulation_macro_vpol()
             elif self.a_type == "HPOL":

@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from datetime import datetime
-
+from typing import Union, Optional
 
 log = logging.getLogger(__name__)
 
@@ -17,10 +17,12 @@ class SaveState:
 
     @classmethod
     def __str__(self):
-        return f"SaveState(generation={self.generation}, step='{self.step}', \
-                    timestamp='{self.timestamp}')"
+        return (
+            f"SaveState(generation={self.generation}, step='{self.step}', "
+            f"timestamp='{self.timestamp}')"
+        )
 
-    def load(cls, filepath: str | Path):
+    def load(cls, filepath: Union[str, Path]):
         filepath = Path(filepath)
         if filepath.exists():
             log.info(f"Loading savestate from {filepath}")
@@ -33,14 +35,17 @@ class SaveState:
             state.save(filepath)
             return state
 
-    def save(self, filepath: str | Path):
+    def save(self, filepath: Union[str, Path]):
         filepath = Path(filepath)
         with open(filepath, "w") as f:
             yaml.dump(asdict(self), f, sort_keys=False)
         log.debug(f"Saved state to {filepath}")
 
     def update(
-        self, step: str, generation: int | None = None, filepath: Path | str = None
+        self,
+        step: str,
+        generation: Optional[int] = None,
+        filepath: Union[Path, str] = None,
     ):
         self.step = step
         if generation is not None:
