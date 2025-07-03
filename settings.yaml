@@ -5,7 +5,8 @@ n_gen: 10
 max_jobs: 50 # Max jobs for user
 job_threads: 40 # Number of threads in any job requested (40 for pitzer on OSC)
 ara_exec: "/users/PAS1977/jacobweiler/GENETIS/test_repos/UpdateAraSim2"
-log_level: "DEBUG"
+log_level: "DEBUG" # Ara Loop verbosity levels: CRITICAL, ERROR, INFO, DEBUG, NOTSET
+verbose: True # Shared-Code Portion verbose? 
 save_all_files: True
 test_loop: False
 
@@ -15,7 +16,7 @@ num_keys: 1  # Number of keys for XFdtd on user
 freq_num: 60
 freq_start: 83.33
 freq_step: 16.67
-nnt: 100000  # Total number of neutrinos thrown per antenna
+nnt: 10000  # Total number of neutrinos thrown per antenna
 exp: 18  # Energy expontent 10^(exp)
 scale_factor: 1 # Fitness scale factor
 geo_factor: 1 # Fitness geometry factor

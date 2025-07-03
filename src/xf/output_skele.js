@@ -151,7 +151,7 @@ for (var k = start; k <= end; k++){
             Output.println( "7getCurrentDataSet() : " +
             s11.getReasonWhyInvalid() );
         }
-        /*
+
         query.sensorType = ResultQuery.CircuitComponent;
         query.sensorId = "Source";
         query.timeDependence = ResultQuery.SteadyState;
@@ -159,19 +159,19 @@ for (var k = start; k <= end; k++){
         query.fieldScatter = ResultQuery.NoFieldScatter;
         query.resultComponent = ResultQuery.Scalar;
         query.dataTransform = ResultQuery.NoTransform;
-        query.complexPart = ResultQuery.NotComplex;
+        query.complexPart = ResultQuery.ComplexMagnitude;
         query.surfaceInterpolationResolution = ResultQuery.NoInterpolation;
         query.setDimensionRange( "Frequency", 0, -1 );
+    
         var imp = new ResultDataSet("");
         imp.setQuery(query);
-
+    
         if( !imp.isValid() ){
-            Output.println( "8getCurrentDataSet() : " +
-            imp.getReasonWhyInvalid() );
+                Output.println( "8getCurrentDataSet() : " +
+                imp.getReasonWhyInvalid() );
         }
-        */
         var ind_num = k - (gen * popsize);
-        var file = RunDir + "/Generation_Data/" + gen + "/";
+        var file = RunDir + "/Generation_Data/" + gen + "/csv_files/";
         file = file + gen + "_" + ind_num;
         file = file + "_vswr_s11_imp.csv";
 
@@ -180,8 +180,7 @@ for (var k = start; k <= end; k++){
         var file_to_open = new File( file );
         file_to_open.open(IODevice.WriteOnly); 
 
-        //DataSetExportUtility.exportDataSetCsv(file_to_open, [vswr, s11, imp], false);
-        DataSetExportUtility.exportDataSetCsv(file_to_open, [vswr, s11], false);
+        DataSetExportUtility.exportDataSetCsv(file_to_open, [vswr, s11, imp], false);
         file_to_open.close();
     }
 }

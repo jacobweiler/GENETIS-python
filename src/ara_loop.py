@@ -5,11 +5,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from PyGA import Run_GA
-from utils.settings import get, load_settings, all
 from utils import initialize
-from xf.xfdtd_tools import XFRunner
-import ara.arasim_tools as ara
+from utils.settings import get, load_settings, all
 from utils.save_state_utils import SaveState
+from xf.xfdtd_tools import XFRunner
+from ara.arasim_tools import AraRunner
 import utils.plotting as plot
 
 
@@ -35,10 +35,10 @@ def ara_loop(g):
 
     load_settings(settings_path)
 
-    initialize.setup_logging(get('log_level'), log_path)
+    initialize.setup_logging(get("log_level"), log_path)
     log = logging.getLogger(__name__)
 
-    for gen in range(current_state.generation, get('n_gen')):
+    for gen in range(current_state.generation, get("n_gen")):
         if gen == 0:
             input(
                 f"Starting generation {gen} at step: {current_state.step}. "
@@ -68,17 +68,18 @@ def ara_loop(g):
 
         if current_state.step == "ara":
             log.info("Simulating in AraSim...")
-            #ara.run_ara_step()
+            ara = AraRunner(run_dir, g.run_name, gen, all())
+            ara.run_ara_step()
             current_state.update("plot", gen, statefile)
 
         if current_state.step == "plot":
             log.info("Plotting...")
             # plot()
-            current_state.update("ga", gen, statefile)
+            current_state.update("ga", gen+1, statefile)
 
         else:
-            log.error(f"Unknown step '{current_state['step']}' found in savestate.")
-            raise ValueError(f"Unknown step '{current_state['step']}' in savestate.")
+            log.error(f"Unknown step {current_state['step']} found in savestate.")
+            raise ValueError(f"Unknown step {current_state['step']} in savestate.")
 
     log.info(f"All {get('n_gen')} gens are done!!!")
 

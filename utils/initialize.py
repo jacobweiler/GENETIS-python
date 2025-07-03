@@ -1,6 +1,7 @@
 import sys
 import logging
 from pathlib import Path
+import numpy as np
 import shutil
 from datetime import datetime
 from ruamel.yaml import YAML
@@ -77,6 +78,19 @@ def init(run_name: Union[str, Path], settings_path: Union[str, Path] = "settings
     settings_data["run_xmacros"] = str(xmacros_dir.resolve())
     settings_data["xmacros"] = str(global_xmacros.resolve())
     settings_data["ara_scripts"] = str(ara_scripts.resolve())
+
+    freq_start = settings_data.get("freq_start", 83.33)
+    freq_step = settings_data.get("freq_step", 16.67)
+    freq_num = settings_data.get("freq_num", 60)
+    freq_vals = [
+        83.33, 100.00, 116.67, 133.33, 150.00, 166.67, 183.34, 200.00, 216.67, 233.34,
+        250.00, 266.67, 283.34, 300.00, 316.67, 333.34, 350.00, 366.67, 383.34, 400.01,
+        416.67, 433.34, 450.01, 466.67, 483.34, 500.01, 516.68, 533.34, 550.01, 566.68,
+        583.34, 600.01, 616.68, 633.34, 650.01, 666.68, 683.35, 700.01, 716.68, 733.35,
+        750.01, 766.68, 783.35, 800.01, 816.68, 833.35, 850.02, 866.68, 883.35, 900.02,
+        916.68, 933.35, 950.02, 966.68, 983.35, 1000.00, 1016.70, 1033.40, 1050.00, 1066.70
+    ]
+    settings_data["freq_vals"] = freq_vals
 
     # Add or replace rng_seed only if missing or set to "random"
     if "rng_seed" not in settings_data or settings_data["rng_seed"] == "random":

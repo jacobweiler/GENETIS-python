@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 import subprocess
 import logging
@@ -21,6 +20,9 @@ class XFRunner:
         self.xmacros_dir = Path(settings["xmacros"])
         self.run_xmacros_dir = Path(settings["run_xmacros"])
         self.a_type = settings["a_type"]
+
+        self.csv_dir = self.run_dir / "Generation_Data" / str(self.gen) / "csv_files"
+        self.csv_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_sim_num(self, indiv_index: int):
         return self.gen * self.npop + indiv_index
@@ -69,10 +71,16 @@ class XFRunner:
 
             # move this inside the same with block so f stays open
             macro_parts = [
-                "header_vpol.js", "calls_vpol.js", "build_vpol.js",
-                "create_pec.js", "vpol_feed.js", "create_grid_vpol.js",
-                "create_sensors.js", "create_ant_sim_data.js",
-                "queue_sim.js", "make_image.js"
+                "header_vpol.js",
+                "calls_vpol.js",
+                "build_vpol.js",
+                "create_pec.js",
+                "vpol_feed.js",
+                "create_grid_vpol.js",
+                "create_sensors.js",
+                "create_ant_sim_data.js",
+                "queue_sim.js",
+                "make_image.js",
             ]
             for part in macro_parts:
                 with open(self.xmacros_dir / part) as src:
@@ -97,10 +105,17 @@ class XFRunner:
 
             # keep the for-loop inside the same with-block
             macro_parts = [
-                "header_hpol.js", "calls_hpol.js", "build_hpol.js",
-                "create_pec.js", "create_al.js", "hpol_feed.js",
-                "create_sensors.js", "create_ant_sim_data.js",
-                "queue_sim.js", "make_image.js", "create_grid_hpol.js"
+                "header_hpol.js",
+                "calls_hpol.js",
+                "build_hpol.js",
+                "create_pec.js",
+                "create_al.js",
+                "hpol_feed.js",
+                "create_sensors.js",
+                "create_ant_sim_data.js",
+                "queue_sim.js",
+                "make_image.js",
+                "create_grid_hpol.js",
             ]
             for part in macro_parts:
                 with open(self.xmacros_dir / part) as src:
@@ -145,6 +160,7 @@ class XFRunner:
             f.write(f'var RunDir = "{self.run_dir}";\n')
             with open(self.xmacros_dir / "output_skele.js") as src:
                 f.write(src.read())
+        macro_path.chmod(0o775)
         log.info(f"output.xmacro created at {macro_path}")
 
     def _run_output_macro(self):
@@ -156,44 +172,51 @@ class XFRunner:
         except subprocess.CalledProcessError as e:
             log.warning("XF output macro execution failed or was interrupted.")
             log.warning(e)
+        
 
     def _jobs_still_running(self):
-            try:
-                result = subprocess.run(
-                    ["squeue", "-n", self.run_name, "--noheader"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
-                    check=True,
-                    text=True,
-                )
-                return bool(result.stdout.strip())
-            except subprocess.CalledProcessError:
-                return False
-    
+        try:
+            result = subprocess.run(
+                ["squeue", "-n", self.run_name, "--noheader"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                check=True,
+                text=True,
+            )
+            return bool(result.stdout.strip())
+        except subprocess.CalledProcessError:
+            return False
+
     def _all_simulation_run_dirs_exist(self):
         return all(
             (
-                self.xf_proj
-                / "Simulations"
-                / f"{self._get_sim_num(i):06d}"
-                / "Run0001"
+                self.xf_proj / "Simulations" / f"{self._get_sim_num(i):06d}" / "Run0001"
             ).exists()
             for i in range(1, self.npop + 1)
         )
 
-    def run_xf_step(self, poll_interval=150):
+    def run_xf_step(self, poll_interval=120):
         """
         Run XF simulation step:
         - If simulations already complete, run output
         - If not complete but jobs are running, wait
         - If not complete and no jobs are running, submit jobs
         """
-        if self._all_simulations_done(): 
-            log.info(f"Generation {self.gen}: Simulations already completed. Skipping job submission.")
+        if self._all_simulations_done():
+            log.info(
+                f"Generation {self.gen}: Simulations already completed. "
+                "Skipping job submission."
+            )
         elif self._jobs_still_running():
-            log.info(f"Jobs for {self.run_name} are already running. Skipping build macro and job submission.")
+            log.info(
+                f"Jobs for {self.run_name} are already running. "
+                "Skipping build macro and job submission."
+            )
         elif self._all_simulation_run_dirs_exist():
-            log.info("All simulation directories exist, assuming modeling done. Submitting jobs directly.")
+            log.info(
+                "All simulation directories exist, assuming modeling done."
+                "Submitting jobs directly."
+            )
             self._submit_jobs()
         else:
             self._clean_sim_dirs()
@@ -218,7 +241,7 @@ class XFRunner:
         if not self._all_simulations_done():
             log.info("Waiting for all simulations to complete...")
             while not self._all_simulations_done():
-                log.info("Simulations not finished yet. Sleeping 2m30s...")
+                log.info("Simulations not finished yet. Sleeping 2m...")
                 time.sleep(poll_interval)
             log.info("All simulations complete.")
 
