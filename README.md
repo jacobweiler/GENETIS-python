@@ -10,8 +10,10 @@ Probably some other stuff too
 
 ## Install 
 conda env create -f environment.yml
+
 conda activate genetis_env
 
 ## Run
 conda activate genetis_env
-python ara_loop.py run_name
+
+./ara_loop.sh run_name
