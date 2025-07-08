@@ -10,7 +10,7 @@ from utils.settings import get, load_settings, all
 from utils.save_state_utils import SaveState
 from xf.xfdtd_tools import XFRunner
 from ara.arasim_tools import AraRunner
-import utils.plotting as plot
+from utils.pop_analysis import AnalyzeGen
 
 
 def parse_args():
@@ -39,7 +39,7 @@ def ara_loop(g):
     log = logging.getLogger(__name__)
 
     for gen in range(current_state.generation, get("n_gen")):
-        if gen == 0:
+        if gen == 0 and current_state.step == "ga":
             input(
                 f"Starting generation {gen} at step: {current_state.step}. "
                 "Press Enter to continue..."
@@ -70,11 +70,12 @@ def ara_loop(g):
             log.info("Simulating in AraSim...")
             ara = AraRunner(run_dir, g.run_name, gen, all())
             ara.run_ara_step()
-            current_state.update("plot", gen, statefile)
+            current_state.update("analysis", gen, statefile)
 
-        if current_state.step == "plot":
-            log.info("Plotting...")
-            # plot()
+        if current_state.step == "analysis":
+            log.info("Analysis + Plotting...")
+            gen_analysis = AnalyzeGen(run_dir, g.run_name, gen)
+            gen_analysis.process_generation()
             current_state.update("ga", gen+1, statefile)
 
         else:

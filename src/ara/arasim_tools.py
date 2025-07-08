@@ -30,6 +30,30 @@ class AraRunner:
         self.txt_dir = self.gen_dir / "txt_files"
         self.txt_dir.mkdir(parents=True, exist_ok=True)
 
+    def run_ara_step(self):
+        try:
+            if self._is_already_done():
+                log.info(f"Generation {self.gen}: AraSim step already completed.")
+                return
+            if self._arasim_jobs_still_running():
+                log.info("AraSim jobs already running — waiting for completion.")
+                self._check_arasim_completion()
+                self._calculate_fitness()
+            elif self._arasim_outputs_exist():
+                log.info(
+                    "AraSim outputs exist and no jobs running"
+                    "— proceeding to calculate fitness."
+                )
+                self._calculate_fitness()
+            else:
+                self._convert_uan_to_ara_format()
+                self._submit_arasim_jobs()
+                self._check_arasim_completion()
+                self._calculate_fitness()
+
+        except Exception as e:
+            log.error(f"AraSim step failed: {e}", exc_info=True)
+
     def _convert_uan_to_ara_format(self):
         freq_vals = self.settings["freq_vals"]
 
@@ -102,7 +126,8 @@ class AraRunner:
                                 txtFile.write(mat[p][q])
 
             log.info(
-                f"UAN to Ara .txt conversion done for antenna {antenna + 1} at {txt_path}"
+                f"UAN to Ara .txt conversion done for antenna {antenna + 1}"
+                f" at {txt_path}"
             )
 
     def _submit_arasim_jobs(self):
@@ -112,7 +137,8 @@ class AraRunner:
             "sbatch",
             f"--array=1-{total_jobs}%{min(total_jobs, 50)}",
             f"--export=ALL,WorkingDir={self.workingdir},RunName={self.run_name},"
-            f"gen={self.gen},Seeds={self.processes},threads={self.settings['job_threads']},"
+            f"gen={self.gen},Seeds={self.processes},"
+            f"threads={self.settings['job_threads']},"
             f"AraSimDir={self.settings['ara_exec']},a_type={self.a_type},"
             f"SpecificSeed={self.settings['rng_seed']},RunDir={self.run_dir},"
             f"nnt_per_ara={nnt_per_ara},exp={self.exp}",
@@ -210,13 +236,20 @@ class AraRunner:
                 f"fitness={fitness:.4e}"
             )
 
-        np.savetxt(self.gen_dir / f"{self.gen}_fitnessScores.csv", fitnesses, delimiter=",")
+        np.savetxt(
+            self.gen_dir / f"{self.gen}_fitnessScores.csv", 
+            fitnesses, 
+            delimiter=","
+        )
         np.savetxt(
             self.gen_dir / f"{self.gen}_Fitness_Error.csv",
             np.column_stack((fit_higherrors, fit_lowerrors)),
             delimiter=",",
         )
-        np.savetxt(self.gen_dir / f"{self.gen}_Veff.csv", veffs, delimiter=",")
+        np.savetxt(self.gen_dir / f"{self.gen}_Veff.csv",
+            veffs, 
+            delimiter=","
+            )
         np.savetxt(
             self.gen_dir / f"{self.gen}_Veff_Error.csv",
             np.column_stack((higherrors, lowerrors)),
@@ -244,27 +277,3 @@ class AraRunner:
 
     def _arasim_outputs_exist(self):
         return any(self.ara_dir.glob("AraOut_*.txt"))
-
-    def run_ara_step(self):
-        try:
-            if self._is_already_done():
-                log.info(f"Generation {self.gen}: AraSim step already completed.")
-                return
-            if self._arasim_jobs_still_running():
-                log.info("AraSim jobs already running — waiting for completion.")
-                self._check_arasim_completion()
-                self._calculate_fitness()
-            elif self._arasim_outputs_exist():
-                log.info(
-                    "AraSim outputs exist and no jobs running"
-                    "— proceeding to calculate fitness."
-                )
-                self._calculate_fitness()
-            else:
-                self._convert_uan_to_ara_format()
-                self._submit_arasim_jobs()
-                self._check_arasim_completion()
-                self._calculate_fitness()
-
-        except Exception as e:
-            log.error(f"AraSim step failed: {e}", exc_info=True)

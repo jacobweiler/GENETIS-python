@@ -24,6 +24,64 @@ class XFRunner:
         self.csv_dir = self.run_dir / "Generation_Data" / str(self.gen) / "csv_files"
         self.csv_dir.mkdir(parents=True, exist_ok=True)
 
+    def run_xf_step(self, poll_interval=120):
+        """
+        Run XF simulation step:
+        - If simulations already complete, run output
+        - If not complete but jobs are running, wait
+        - If not complete and no jobs are running, submit jobs
+        """
+        try:
+            if self._all_simulations_done():
+                log.info(
+                    f"Generation {self.gen}: Simulations already completed. "
+                    "Skipping job submission."
+                )
+            elif self._jobs_still_running():
+                log.info(
+                    f"Jobs for {self.run_name} are already running. "
+                    "Skipping build macro and job submission."
+                )
+            elif self._all_simulation_run_dirs_exist():
+                log.info(
+                    "All simulation directories exist, assuming modeling done."
+                    "Submitting jobs directly."
+                )
+                self._submit_jobs()
+            else:
+                self._clean_sim_dirs()
+                uan_dir = self.run_dir / "Generation_Data" / str(self.gen) / "uan_files"
+                uan_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
+
+                for i in range(1, self.npop + 1):
+                    indiv_dir = uan_dir / f"{i}"
+                    indiv_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
+
+                if self.a_type == "VPOL":
+                    self._create_simulation_macro_vpol()
+                elif self.a_type == "HPOL":
+                    self._create_simulation_macro_hpol()
+                else:
+                    raise ValueError(f"Unsupported antenna type: {self.a_type}")
+
+                self._run_build_macro()
+                self._submit_jobs()
+
+            # Wait for simulations to complete
+            if not self._all_simulations_done():
+                log.info("Waiting for all simulations to complete...")
+                while not self._all_simulations_done():
+                    log.info("Simulations not finished yet. Sleeping 2m...")
+                    time.sleep(poll_interval)
+                log.info("All simulations complete.")
+
+            self._create_output_macro()
+            self._run_output_macro()
+            log.info(f"Generation {self.gen}: Outputted UAN files.")
+
+        except Exception as e:
+            log.error(f"XFdtd step failed: {e}", exc_info=True)
+
     def _get_sim_num(self, indiv_index: int):
         return self.gen * self.npop + indiv_index
 
@@ -172,7 +230,6 @@ class XFRunner:
         except subprocess.CalledProcessError as e:
             log.warning("XF output macro execution failed or was interrupted.")
             log.warning(e)
-        
 
     def _jobs_still_running(self):
         try:
@@ -194,57 +251,3 @@ class XFRunner:
             ).exists()
             for i in range(1, self.npop + 1)
         )
-
-    def run_xf_step(self, poll_interval=120):
-        """
-        Run XF simulation step:
-        - If simulations already complete, run output
-        - If not complete but jobs are running, wait
-        - If not complete and no jobs are running, submit jobs
-        """
-        if self._all_simulations_done():
-            log.info(
-                f"Generation {self.gen}: Simulations already completed. "
-                "Skipping job submission."
-            )
-        elif self._jobs_still_running():
-            log.info(
-                f"Jobs for {self.run_name} are already running. "
-                "Skipping build macro and job submission."
-            )
-        elif self._all_simulation_run_dirs_exist():
-            log.info(
-                "All simulation directories exist, assuming modeling done."
-                "Submitting jobs directly."
-            )
-            self._submit_jobs()
-        else:
-            self._clean_sim_dirs()
-            uan_dir = self.run_dir / "Generation_Data" / str(self.gen) / "uan_files"
-            uan_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
-
-            for i in range(1, self.npop + 1):
-                indiv_dir = uan_dir / f"{i}"
-                indiv_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
-
-            if self.a_type == "VPOL":
-                self._create_simulation_macro_vpol()
-            elif self.a_type == "HPOL":
-                self._create_simulation_macro_hpol()
-            else:
-                raise ValueError(f"Unsupported antenna type: {self.a_type}")
-
-            self._run_build_macro()
-            self._submit_jobs()
-
-        # Wait for simulations to complete
-        if not self._all_simulations_done():
-            log.info("Waiting for all simulations to complete...")
-            while not self._all_simulations_done():
-                log.info("Simulations not finished yet. Sleeping 2m...")
-                time.sleep(poll_interval)
-            log.info("All simulations complete.")
-
-        self._create_output_macro()
-        self._run_output_macro()
-        log.info(f"Generation {self.gen}: Outputted UAN files.")
