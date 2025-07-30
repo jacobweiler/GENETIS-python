@@ -26,9 +26,15 @@ class AraRunner:
         self.exp = settings["exp"]
 
         self.ara_dir = self.gen_dir / "ara_outputs"
-        self.ara_dir.mkdir(parents=True, exist_ok=True)
+        self.ara_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
         self.txt_dir = self.gen_dir / "txt_files"
-        self.txt_dir.mkdir(parents=True, exist_ok=True)
+        self.txt_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
+        self.root_dir = self.gen_dir / "root_files"
+        self.root_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
+
+        for i in range(1, self.npop + 1):
+            indiv_dir = self.root_dir / f"{i}"
+            indiv_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
 
     def run_ara_step(self):
         try:
@@ -242,7 +248,7 @@ class AraRunner:
             delimiter=","
         )
         np.savetxt(
-            self.gen_dir / f"{self.gen}_Fitness_Error.csv",
+            self.gen_dir / f"{self.gen}_fitnessError.csv",
             np.column_stack((fit_higherrors, fit_lowerrors)),
             delimiter=",",
         )

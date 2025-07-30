@@ -21,7 +21,7 @@ def setup_logging(log_level: str = "INFO", log_file: Union[str, Path] = None):
 
     if log_file:
         log_path = Path(log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.parent.mkdir(parents=True, exist_ok=True, mode=0o775)
         handlers.append(logging.FileHandler(log_path, mode="a"))
 
     logging.basicConfig(
@@ -39,7 +39,7 @@ def setup_logging(log_level: str = "INFO", log_file: Union[str, Path] = None):
 def init(run_name: Union[str, Path], settings_path: Union[str, Path] = "settings.yaml"):
     workingdir = Path.cwd()
     run_dir = workingdir / "Run_Outputs" / run_name
-    run_dir.mkdir(parents=True, exist_ok=True)
+    run_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
 
     # Create subdirectories
     (run_dir / "job_outs" / "xf_out").mkdir(parents=True, exist_ok=True, mode=0o775)

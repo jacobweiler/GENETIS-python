@@ -75,7 +75,7 @@ def ara_loop(g):
         if current_state.step == "analysis":
             log.info("Analysis + Plotting...")
             gen_analysis = AnalyzeGen(run_dir, g.run_name, gen)
-            gen_analysis.process_generation()
+            gen_analysis.process_gen()
             current_state.update("ga", gen+1, statefile)
 
         else:

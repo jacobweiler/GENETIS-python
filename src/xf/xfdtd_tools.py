@@ -14,7 +14,7 @@ class XFRunner:
         self.gen = gen
         self.settings = settings
 
-        self.working_dir = Path(settings["workingdir"])
+        self.workingdir = Path(settings["workingdir"])
         self.npop = settings["npop"]
         self.xf_proj = Path(settings["xf_proj"])
         self.xmacros_dir = Path(settings["xmacros"])
@@ -22,7 +22,7 @@ class XFRunner:
         self.a_type = settings["a_type"]
 
         self.csv_dir = self.run_dir / "Generation_Data" / str(self.gen) / "csv_files"
-        self.csv_dir.mkdir(parents=True, exist_ok=True)
+        self.csv_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
 
     def run_xf_step(self, poll_interval=120):
         """
@@ -116,7 +116,7 @@ class XFRunner:
             f.write(f"var NPOP = {self.npop};\n")
             f.write("var indiv = 1;\n")
             f.write(f"var gen = {self.gen};\n")
-            f.write(f'var workingdir = "{self.working_dir}";\n')
+            f.write(f'var workingdir = "{self.workingdir}";\n')
             f.write(f'var RunName = "{self.run_name}";\n')
             f.write(f"var freq_start = {self.settings['freq_start']};\n")
             f.write(f"var freq_step = {self.settings['freq_step']};\n")
@@ -153,7 +153,7 @@ class XFRunner:
             f.write(f"var NPOP = {self.npop};\n")
             f.write("var indiv = 1;\n")
             f.write(f"var gen = {self.gen};\n")
-            f.write(f'var workingdir = "{self.working_dir}";\n')
+            f.write(f'var workingdir = "{self.workingdir}";\n')
             f.write(f'var RunName = "{self.run_name}";\n')
             f.write(f"var freq_start = {self.settings['freq_start']};\n")
             f.write(f"var freq_step = {self.settings['freq_step']};\n")
@@ -199,12 +199,12 @@ class XFRunner:
         cmd = [
             "sbatch",
             f"--array=1-{self.npop}%{batch_size}",
-            f"--export=ALL,WorkingDir={self.working_dir},RunName={self.run_name},"
+            f"--export=ALL,WorkingDir={self.workingdir},RunName={self.run_name},"
             f"indiv=0,gen={self.gen},batch_size={batch_size},NPOP={self.npop},"
             f"XFProj={self.xf_proj}",
             f"--job-name={self.run_name}",
             f"--time={job_time}",
-            str(self.working_dir / "src" / "xf" / "xf_gpu.sh"),
+            str(self.workingdir / "src" / "xf" / "xf_gpu.sh"),
         ]
         subprocess.run(cmd, check=True)
         log.info(f"Submitted XF jobs with batch size {batch_size}.")
@@ -214,7 +214,7 @@ class XFRunner:
         with macro_path.open("w") as f:
             f.write(f"var popsize = {self.npop};\n")
             f.write(f"var gen = {self.gen};\n")
-            f.write(f'var workingdir = "{self.working_dir}";\n')
+            f.write(f'var workingdir = "{self.workingdir}";\n')
             f.write(f'var RunDir = "{self.run_dir}";\n')
             with open(self.xmacros_dir / "output_skele.js") as src:
                 f.write(src.read())
