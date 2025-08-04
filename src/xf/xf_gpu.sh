@@ -8,8 +8,8 @@
 #SBATCH --error=Run_Outputs/%x/job_outs/xf_err/XF_%a.error
 ##SBATCH --mem-per-gpu=178gb
 
-module load xfdtd/7.10.2.3
-module load cuda
+module load xfdtd/7.11.0.3
+module load cuda/12.6.2
 
 individual_number=$((${gen}*${NPOP}+${SLURM_ARRAY_TASK_ID}))
 indiv_dir=$XFProj/Simulations/$(printf "%06d" $individual_number)/Run0001

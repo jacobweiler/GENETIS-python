@@ -8,7 +8,7 @@
 #SBATCH -n 40
 
 source /fs/ess/PAS1960/BiconeEvolutionOSC/new_root/new_root_setup.sh
-source /cvmfs/ara.opensciencegrid.org/trunk/centos7/setup.sh
+source /rhel7/etc/cvmfs/ara.opensciencegrid.org/trunk/centos7/setup.sh
 
 cd $AraSimDir
 
