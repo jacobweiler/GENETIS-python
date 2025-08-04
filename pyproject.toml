@@ -13,6 +13,7 @@ dependencies = [
     "shared-code @ git+https://github.com/osu-particle-astrophysics/Shared-Code.git@add_hpol", 
     "pandas",
     "matplotlib",
+    "seaborn",
     "black", 
     "isort",
     "flake8",

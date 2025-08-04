@@ -429,7 +429,45 @@ class AnalyzeGen:
         """
         file_tail = "vswr_s11_imp.csv"
 
-        # Ara data
+        for i, directory in enumerate(data_dirs):
+            # The directory in data_dirs isn't the full file path. CHANGE THIS.
+            data = np.genfromtxt(directory, delimiter",", skip_header=1) 
+            # VSWR
+            plt.figure(figsize=(16, 8))
+            plt.plot(data[:,0]/(10**9), data[:,1], label=labels[i], color=colors[0], linestyle="solid", linewidth=3)
+            plt.ylim(.8, 5)
+            #plt.xlim(0.1, .8)
+            plt.xlabel("Frequency (GHz)", fontsize=18)
+            plt.ylabel("VSWR", fontsize=18)
+            plt.grid(True)
+            plt.tight_layout()
+            plt.legend()
+            #plt.title("VSWR", fontsize=18)
+            plt.savefig(outloc / f"{self.gen}_{labels[i]}_vswr.png")
+
+            # S11
+            plt.figure(figsize=(16,8))
+            plt.plot(data[:,0]/(10**9), 20*np.log10(data[:,2]), label=labels[i], color=colors[0], linestyle="solid", linewidth=3)
+            #plt.ylim(-35, 0)
+            #plt.xlim(.2, .8)
+            plt.xlabel("Frequency (GHz)", fontsize=18)
+            plt.ylabel("|S11|", fontsize=18)
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig(outloc / f"{self.gen}_{labels[i]}_s11.png")
+
+            # Impedance
+            plt.figure(figsize=(16,8))
+            plt.plot(data[:,0]/(10**9), data[:,3], label=labels[i], color=colors[0], linestyle="solid", linewidth=3)
+            #plt.ylim(-35, 0)
+            #plt.xlim(.2, .8)
+            plt.xlabel("Frequency (GHz)", fontsize=18)
+            plt.ylabel("Impedance (Ohm)", fontsize=18)
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig(outloc / f"{self.gen}_{labels[i]}_imp.png")
 
     def _PoR_plot(self, root_dirs, labels, outloc):
         """
