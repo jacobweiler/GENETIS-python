@@ -1,12 +1,13 @@
-from pathlib import Path
-import subprocess
 import logging
 import shutil
+import subprocess
 import time
+from pathlib import Path
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 import seaborn as sns
 
 # plt.switch_backend('agg')
@@ -130,8 +131,7 @@ class AnalyzeGen:
         See if there is new best overall individual
         If new best => Make following Plots:
         1. Gain Comparison w/ Ara
-        2. PoRP w/ Ara
-        3. VSWR, S11, Imp w/ Ara (only have Ara data for VSWR + Imp)
+        2. VSWR, S11, Imp w/ Ara (only have Ara data for VSWR + Imp)
         And save all relevant data
         """
         best_dir = self.run_dir / "best_overall"
@@ -181,7 +181,6 @@ class AnalyzeGen:
         self._gain_plot([best_uan_dir], ["Best Overall"], best_plot_dir)
         self._gain_freq_plot([best_uan_dir], ["Best Overall"], best_plot_dir)
         self._vswr_s11_imp_plot([best_dir], ["Best Overall"], best_plot_dir)
-        self._PoR_plot([best_root_dir], ["Best Overall"], best_plot_dir)
 
     def _copy_all_files(self, src_dir, dest_dir):
         """
@@ -308,15 +307,15 @@ class AnalyzeGen:
             (i, freq) for i, freq in zip(range(2, 51, 6), range(100, 801, 100))
         ]
         if self.a_type == "VPOL":  # Need to put the target files into directories
-            theta_slice = 90  # Put theta slice here that we want for VPOL
+            # theta_slice = 90  # Put theta slice here that we want for VPOL
             ara_gain_dir = self.ara_vpol_dir / "ara_bicone6in_"
-            ara_label = "Ara VPOL"
+            # ara_label = "Ara VPOL"
         elif self.a_type == "HPOL":
-            theta_slice = 90  # Put theta slice wanted for HPOL
+            # theta_slice = 90  # Put theta slice wanted for HPOL
             ara_gain_dir = (
                 self.ara_hpol_dir / "ara_hpol_"
             )  # Need to get 100 MHz + 800 MHz files
-            ara_label = "Ara HPOL"
+            # ara_label = "Ara HPOL"
 
         for i, directory in enumerate(uan_dirs):
             plot_out_dir = outloc + labels[i]
@@ -416,40 +415,47 @@ class AnalyzeGen:
                 plt.savefig(outloc / out_name, dpi=300, bbox_inches="tight")
                 plt.close(fig)
 
-    def _gain_freq_plot(self, uan_dirs, labels, outloc):
-        """
-        creates gain vs frequency plots at different directions for inputted uan directories
-        comparison against relevant ara antenna
-        """
-        pass
-
     def _vswr_s11_imp_plot(self, data_dirs, labels, outloc):
         """
         Plots vswr, s11, and impedance for each inputted data_dir
         """
-        file_tail = "vswr_s11_imp.csv"
+        # file_tail = "vswr_s11_imp.csv"
 
         for i, directory in enumerate(data_dirs):
             # The directory in data_dirs isn't the full file path. CHANGE THIS.
-            data = np.genfromtxt(directory, delimiter",", skip_header=1) 
+            data = np.genfromtxt(directory, delimiter=",", skip_header=1)
             # VSWR
             plt.figure(figsize=(16, 8))
-            plt.plot(data[:,0]/(10**9), data[:,1], label=labels[i], color=colors[0], linestyle="solid", linewidth=3)
-            plt.ylim(.8, 5)
-            #plt.xlim(0.1, .8)
+            plt.plot(
+                data[:, 0] / (10**9),
+                data[:, 1],
+                label=labels[i],
+                color=self.colors[0],
+                linestyle="solid",
+                linewidth=3,
+            )
+            plt.ylim(0.8, 5)
+            # plt.xlim(0.1, .8)
             plt.xlabel("Frequency (GHz)", fontsize=18)
             plt.ylabel("VSWR", fontsize=18)
             plt.grid(True)
             plt.tight_layout()
             plt.legend()
-            #plt.title("VSWR", fontsize=18)
+            # plt.title("VSWR", fontsize=18)
             plt.savefig(outloc / f"{self.gen}_{labels[i]}_vswr.png")
 
             # S11
-            plt.figure(figsize=(16,8))
-            plt.plot(data[:,0]/(10**9), 20*np.log10(data[:,2]), label=labels[i], color=colors[0], linestyle="solid", linewidth=3)
-            #plt.ylim(-35, 0)
-            #plt.xlim(.2, .8)
+            plt.figure(figsize=(16, 8))
+            plt.plot(
+                data[:, 0] / (10**9),
+                20 * np.log10(data[:, 2]),
+                label=labels[i],
+                color=self.colors[0],
+                linestyle="solid",
+                linewidth=3,
+            )
+            # plt.ylim(-35, 0)
+            # plt.xlim(.2, .8)
             plt.xlabel("Frequency (GHz)", fontsize=18)
             plt.ylabel("|S11|", fontsize=18)
             plt.legend()
@@ -458,19 +464,20 @@ class AnalyzeGen:
             plt.savefig(outloc / f"{self.gen}_{labels[i]}_s11.png")
 
             # Impedance
-            plt.figure(figsize=(16,8))
-            plt.plot(data[:,0]/(10**9), data[:,3], label=labels[i], color=colors[0], linestyle="solid", linewidth=3)
-            #plt.ylim(-35, 0)
-            #plt.xlim(.2, .8)
+            plt.figure(figsize=(16, 8))
+            plt.plot(
+                data[:, 0] / (10**9),
+                data[:, 3],
+                label=labels[i],
+                color=self.colors[0],
+                linestyle="solid",
+                linewidth=3,
+            )
+            # plt.ylim(-35, 0)
+            # plt.xlim(.2, .8)
             plt.xlabel("Frequency (GHz)", fontsize=18)
             plt.ylabel("Impedance (Ohm)", fontsize=18)
             plt.legend()
             plt.grid(True)
             plt.tight_layout()
             plt.savefig(outloc / f"{self.gen}_{labels[i]}_imp.png")
-
-    def _PoR_plot(self, root_dirs, labels, outloc):
-        """
-        Plots the physics of results by submitting a job as to not stop loop for too long :)
-        """
-        pass
