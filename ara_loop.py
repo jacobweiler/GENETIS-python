@@ -8,8 +8,8 @@ from PyGA import Run_GA
 from utils import initialize
 from utils.settings import get, load_settings, all
 from utils.save_state_utils import SaveState
-from xf.xfdtd_tools import XFRunner
-from ara.arasim_tools import AraRunner
+from src.xf.xfdtd_tools import XFRunner
+from src.ara.arasim_tools import AraRunner
 from utils.pop_analysis import AnalyzeGen
 
 
@@ -76,7 +76,7 @@ def ara_loop(g):
             log.info("Analysis + Plotting...")
             gen_analysis = AnalyzeGen(run_dir, g.run_name, gen)
             gen_analysis.process_gen()
-            current_state.update("ga", gen+1, statefile)
+            current_state.update("ga", gen + 1, statefile)
 
         else:
             log.error(f"Unknown step {current_state['step']} found in savestate.")

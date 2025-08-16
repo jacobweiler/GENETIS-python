@@ -24,7 +24,7 @@ class XFRunner:
         self.csv_dir = self.run_dir / "Generation_Data" / str(self.gen) / "csv_files"
         self.csv_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
 
-    def run_xf_step(self, poll_interval=120):
+    def run_xf_step(self, poll_interval=60):
         """
         Run XF simulation step:
         - If simulations already complete, run output
@@ -71,7 +71,9 @@ class XFRunner:
             if not self._all_simulations_done():
                 log.info("Waiting for all simulations to complete...")
                 while not self._all_simulations_done():
-                    log.info("Simulations not finished yet. Sleeping 2m...")
+                    log.info(
+                        f"Simulations not finished yet. Sleeping {poll_interval} seconds..."
+                    )
                     time.sleep(poll_interval)
                 log.info("All simulations complete.")
 
@@ -125,23 +127,30 @@ class XFRunner:
             f.write(f"var NSECTIONS = {self.settings['nsections']};\n")
             f.write(f"var evolve_sep = {self.settings['sep']};\n")
             if self.gen == 0:
-                f.write(f'App.saveCurrentProjectAs("{self.run_dir/self.run_name}");\n')
+                f.write(
+                    f'App.saveCurrentProjectAs("{self.run_dir / self.run_name}");\n'
+                )
 
             # move this inside the same with block so f stays open
-            macro_parts = [
+            vpol_macro_parts = [
                 "header_vpol.js",
                 "calls_vpol.js",
                 "build_vpol.js",
-                "create_pec.js",
                 "vpol_feed.js",
                 "create_grid_vpol.js",
+            ]
+            shared_macro_parts = [
+                "create_pec.js",
                 "create_sensors.js",
                 "create_ant_sim_data.js",
                 "queue_sim.js",
                 "make_image.js",
             ]
-            for part in macro_parts:
-                with open(self.xmacros_dir / part) as src:
+            for part in vpol_macro_parts:
+                with open(self.xmacros_dir / "vpol_scripts" / part) as src:
+                    f.write(src.read())
+            for part in shared_macro_parts:
+                with open(self.xmacros_dir / "shared_scripts" / part) as src:
                     f.write(src.read())
         macro_path.chmod(0o775)
 
@@ -159,24 +168,32 @@ class XFRunner:
             f.write(f"var freq_step = {self.settings['freq_step']};\n")
             f.write(f"var freqCoefficients = {self.settings['freq_num']};\n")
             if self.gen == 0:
-                f.write(f'App.saveCurrentProjectAs("{self.run_dir/self.run_name}");\n')
+                f.write(
+                    f'App.saveCurrentProjectAs("{self.run_dir / self.run_name}");\n'
+                )
 
             # keep the for-loop inside the same with-block
-            macro_parts = [
+            hpol_macro_parts = [
                 "header_hpol.js",
                 "calls_hpol.js",
                 "build_hpol.js",
-                "create_pec.js",
                 "create_al.js",
                 "hpol_feed.js",
+            ]
+            shared_macro_parts = [
+                "create_pec.js",
                 "create_sensors.js",
                 "create_ant_sim_data.js",
                 "queue_sim.js",
                 "make_image.js",
                 "create_grid_hpol.js",
             ]
-            for part in macro_parts:
-                with open(self.xmacros_dir / part) as src:
+            for part in hpol_macro_parts:
+                with open(self.xmacros_dir / "hpol_scripts" / part) as src:
+                    f.write(src.read())
+
+            for part in shared_macro_parts:
+                with open(self.xmacros_dir / "shared_scripts" / part) as src:
                     f.write(src.read())
         macro_path.chmod(0o775)
         log.info(f"simulation_PEC.xmacro created at {macro_path}")
@@ -204,7 +221,7 @@ class XFRunner:
             f"XFProj={self.xf_proj}",
             f"--job-name={self.run_name}",
             f"--time={job_time}",
-            str(self.workingdir / "src" / "xf" / "xf_gpu.sh"),
+            str(self.workingdir / "src" / "xf" / "shared_scripts" / "xf_gpu.sh"),
         ]
         subprocess.run(cmd, check=True)
         log.info(f"Submitted XF jobs with batch size {batch_size}.")
@@ -216,7 +233,7 @@ class XFRunner:
             f.write(f"var gen = {self.gen};\n")
             f.write(f'var workingdir = "{self.workingdir}";\n')
             f.write(f'var RunDir = "{self.run_dir}";\n')
-            with open(self.xmacros_dir / "output_skele.js") as src:
+            with open(self.xmacros_dir / "shared_scripts" / "output_skele.js") as src:
                 f.write(src.read())
         macro_path.chmod(0o775)
         log.info(f"output.xmacro created at {macro_path}")
