@@ -2,6 +2,7 @@ import logging
 import shutil
 import subprocess
 import time
+import os
 from pathlib import Path
 
 import matplotlib as mpl
@@ -23,7 +24,7 @@ class AnalyzeGen:
 
         self.workingdir = self.settings["workingdir"]
         self.npop = self.settings["npop"]
-        self.ara_scripts = self.settings["ara_scripts"]
+        self.ara_scripts = Path(self.settings["ara_scripts"])
         self.a_type = self.settings["a_type"]
 
         self.ara_vpol_dir = self.ara_scripts / "antenna_files" / "vpol"
@@ -39,7 +40,18 @@ class AnalyzeGen:
         self.top_mid_worst_df = None
 
         # Plotting
-        self.colors = []
+        self.colors = [
+            "#00429d",
+            "#3e67ae",
+            "#618fbf",
+            "#85b7ce",
+            "#b1dfdb",
+            "#ffcab9",
+            "#fd9291",
+            "#e75d6f",
+            "#c52a52",
+            "#93003a",
+        ]
 
     def process_gen(self):
         """
@@ -89,33 +101,57 @@ class AnalyzeGen:
 
     def _top_mid_worst(self):
         """
-        Get generation top 3 best, middle 2 and worst individuals
+        Get generation top 3 best, middle 2, and worst individuals
         """
-        fitness = np.array([self.gen_dict[i]["Fitness"] for i in self.gen_dict])
-        fit_error = np.array([self.gen_dict[i]["FitnessError"] for i in self.gen_dict])
 
+        # Ensure Fitness and FitnessError are scalars
+        fitness = np.array(
+            [np.atleast_1d(self.gen_dict[i]["Fitness"])[0] for i in self.gen_dict]
+        )
+        fit_error = np.array(
+            [np.atleast_1d(self.gen_dict[i]["FitnessError"])[0] for i in self.gen_dict]
+        )
+
+        # Identify top 3, worst, and middle 2 individuals
         top_3_idx = np.argsort(fitness)[-3:][::-1]
         worst_idx = np.argmin(fitness)
         mean_fitness = np.mean(fitness)
         abs_diff = np.abs(fitness - mean_fitness)
         avg_2_idx = np.argsort(abs_diff)[:2]
 
-        all_idx = np.unique(np.concatenate([top_3_idx, avg_2_idx, [worst_idx]]))
+        # Combine indices and remove duplicates
+        all_idx = np.unique(np.concatenate([top_3_idx, avg_2_idx, [worst_idx]])).astype(
+            int
+        )
 
-        labels = []
-        for i in all_idx:
-            if i in top_3_idx:
-                labels.append("top")
-            elif i == worst_idx:
-                labels.append("bottom")
-            elif i in avg_2_idx:
-                labels.append("average")
-            else:
-                labels.append("")
+        # Generate labels ensuring length matches all_idx
+        labels = [
+            "top"
+            if i in top_3_idx
+            else "bottom"
+            if i == worst_idx
+            else "average"
+            if i in avg_2_idx
+            else "unknown"
+            for i in all_idx
+        ]
 
+        # Debugging check
+        print(
+            "all_idx length:",
+            len(all_idx),
+            "labels length:",
+            len(labels),
+            "fitness shape:",
+            fitness[all_idx].shape,
+            "fit_error shape:",
+            fit_error[all_idx].shape,
+        )
+
+        # Create DataFrame
         df = pd.DataFrame(
             {
-                "Gen": self.gen,
+                "Gen": [self.gen] * len(all_idx),
                 "Indiv": all_idx + 1,
                 "Fitness": fitness[all_idx],
                 "FitnessError": fit_error[all_idx],
@@ -173,14 +209,20 @@ class AnalyzeGen:
         self._copy_all_files(root_dir, best_root_dir)
 
         # save new best data
-        pd.DataFrame([best_data]).to_csv(
-            best_dir / "best_data.csv", index=False
-        )  # idk what this will look like
+        pd.DataFrame([best_data]).to_csv(best_dir / "best_data.csv", index=False)
 
         # Plotting
         self._gain_plot([best_uan_dir], ["Best Overall"], best_plot_dir)
         self._gain_freq_plot([best_uan_dir], ["Best Overall"], best_plot_dir)
-        self._vswr_s11_imp_plot([best_dir], ["Best Overall"], best_plot_dir)
+        self._vswr_s11_imp_plot(
+            [
+                best_dir
+                / "csv_files"
+                / f"{self.gen}_{best_data['Indiv']}_vswr_s11_imp.csv"
+            ],
+            ["Best Overall"],
+            best_plot_dir,
+        )
 
     def _copy_all_files(self, src_dir, dest_dir):
         """
@@ -244,7 +286,8 @@ class AnalyzeGen:
             for indiv in indivs_to_plot
         ]
         vswr_s11_imp_dirs = [
-            self.csv_dir / f"{self.gen}_{indiv}_" for indiv in indivs_to_plot
+            self.csv_dir / f"{self.gen}_{indiv}_vswr_s11_imp.csv"
+            for indiv in indivs_to_plot
         ]
 
         self._gain_plot(gain_dirs, labels, self.plot_dir)
@@ -258,7 +301,7 @@ class AnalyzeGen:
         min_vals = gen_data["Min"]
         max_vals = gen_data["Max"]
 
-        ax = plt.subplots(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         # Plot mean with error as vertical line (min/max)
         ax.plot(generations, mean_vals, color="darkorange", label="Mean", linewidth=2)
@@ -318,7 +361,7 @@ class AnalyzeGen:
             # ara_label = "Ara HPOL"
 
         for i, directory in enumerate(uan_dirs):
-            plot_out_dir = outloc + labels[i]
+            plot_out_dir = outloc / labels[i]
             plot_out_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
             for freq in freq_list:
                 title = f"{freq[1]} MHz"
@@ -326,9 +369,9 @@ class AnalyzeGen:
                 out_name = f"{curr_label}_gain_{round(freq[1])}"
 
                 # Ara Antenna
-                ara_file = ara_gain_dir / f"{freq[0]}.uan"
+                ara_file = ara_gain_dir.with_name(ara_gain_dir.stem + f"{freq[0]}.csv")
                 ara_data = np.genfromtxt(
-                    ara_file, unpack=True, names=True, skip_header=2
+                    ara_file, names=True, dtype=None, encoding=None, skip_header=2
                 )
                 # ara_theta = ara_data['Theta']
                 ara_phi = ara_data["Phi"]
@@ -340,7 +383,7 @@ class AnalyzeGen:
                 # phi_gain0 = ara_gain[ara_theta == 90]
 
                 # GENETIS Antenna
-                uan_file = directory + f"{freq[0]}.uan"
+                uan_file = directory.with_name(directory.stem + f"{freq[0]}.uan")
                 uan_data = np.genfromtxt(uan_file, unpack=True, skip_header=18)
                 # thetas = np.radians(uan_data[0])
                 phis = np.radians(uan_data[1])

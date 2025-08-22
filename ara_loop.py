@@ -3,6 +3,7 @@ import argparse
 import logging
 from pathlib import Path
 from types import SimpleNamespace
+import shutil
 
 from PyGA import Run_GA
 from utils import initialize
@@ -62,19 +63,25 @@ def ara_loop(g):
 
         if current_state.step == "xf":
             log.info("Simulating in XF...")
-            xf = XFRunner(run_dir, g.run_name, gen, all())
-            xf.run_xf_step()
-            current_state.update("ara", gen, statefile)
+            # xf = XFRunner(run_dir, g.run_name, gen, all())
+            # xf.run_xf_step()
+            # current_state.update("ara", gen, statefile)
+            # Skipping over this and copying data from previous runs since ARA is broken
+            test_data = "/users/PAS1977/jacobweiler/GENETIS/test_repos/GENETIS-python/Run_Outputs/ara_test_7/Generation_Data/0"
+            data_place = run_dir / "Generation_Data" / str(gen)
+            shutil.rmtree(data_place)
+            shutil.copytree(test_data, data_place, copy_function=shutil.copy2)
+            current_state.update("analysis", gen, statefile)
 
         if current_state.step == "ara":
             log.info("Simulating in AraSim...")
-            ara = AraRunner(run_dir, g.run_name, gen, all())
-            ara.run_ara_step()
+            # ara = AraRunner(run_dir, g.run_name, gen, all())
+            # ara.run_ara_step()
             current_state.update("analysis", gen, statefile)
 
         if current_state.step == "analysis":
             log.info("Analysis + Plotting...")
-            gen_analysis = AnalyzeGen(run_dir, g.run_name, gen)
+            gen_analysis = AnalyzeGen(run_dir, gen, all())
             gen_analysis.process_gen()
             current_state.update("ga", gen + 1, statefile)
 
